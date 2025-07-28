@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import MusicPlayer from "@/components/MusicPlayer";
 import heroImage from "@/assets/gothic-hero-bg.jpg";
 
 const Hero = () => {
@@ -28,13 +29,18 @@ const Hero = () => {
             Погрузись в бездну звука. Исследуй темные глубины музыки. Откройся ритмам подсознания.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
             <Button variant="hero" size="lg" className="text-lg px-12 py-4">
               Войти в бездну
             </Button>
             <Button variant="gothic" size="lg" className="text-lg px-12 py-4">
               Исследовать галерею
             </Button>
+          </div>
+
+          {/* Music Player */}
+          <div className="mt-16">
+            <MusicPlayer />
           </div>
         </div>
       </div>

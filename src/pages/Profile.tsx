@@ -99,12 +99,12 @@ export default function Profile() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
+        .update({
           display_name: formData.display_name,
           bio: formData.bio,
           avatar_url: formData.avatar_url
-        });
+        })
+        .eq('user_id', user.id);
 
       if (error) throw error;
 

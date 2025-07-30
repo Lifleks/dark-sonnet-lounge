@@ -1,4 +1,4 @@
-import { User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, Settings, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,6 +79,12 @@ export default function UserMenu() {
           <Link to="/profile" className="flex items-center cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             <span className="font-gothic">Личный кабинет</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/friends" className="flex items-center cursor-pointer">
+            <Users className="mr-2 h-4 w-4" />
+            <span className="font-gothic">Друзья и чаты</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

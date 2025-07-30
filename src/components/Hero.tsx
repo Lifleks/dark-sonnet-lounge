@@ -1,10 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import MusicPlayer from "@/components/MusicPlayer";
+import UserMenu from "@/components/UserMenu";
+import { useAuth } from "@/hooks/useAuth";
 import heroImage from "@/assets/gothic-hero-bg.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-gothic overflow-hidden">
@@ -17,6 +20,13 @@ const Hero = () => {
       {/* Gothic Glow Effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gothic-glow/10 rounded-full blur-3xl animate-gothic-glow" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gothic-glow/5 rounded-full blur-3xl animate-float" />
+      
+      {/* User Menu */}
+      {user && (
+        <div className="absolute top-6 right-6 z-30">
+          <UserMenu />
+        </div>
+      )}
       
       {/* Main Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
@@ -37,9 +47,9 @@ const Hero = () => {
               variant="hero" 
               size="lg" 
               className="text-lg px-12 py-4"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate(user ? '/profile' : '/auth')}
             >
-              Войти в бездну
+              {user ? "Личный кабинет" : "Войти в бездну"}
             </Button>
             <Button variant="gothic" size="lg" className="text-lg px-12 py-4">
               Исследовать галерею

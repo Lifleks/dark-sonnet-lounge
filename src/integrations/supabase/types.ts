@@ -77,6 +77,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_library: {
+        Row: {
+          artist: string | null
+          created_at: string
+          duration: string | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          artist?: string | null
+          created_at?: string
+          duration?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          artist?: string | null
+          created_at?: string
+          duration?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

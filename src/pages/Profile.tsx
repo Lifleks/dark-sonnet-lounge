@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Edit, Trash2, Music, Upload, ArrowLeft, Library, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate, useNavigate } from "react-router-dom";
+import { usePlayer } from "@/contexts/PlayerContext";
 
 interface Profile {
   id: string;
@@ -40,6 +41,7 @@ export default function Profile() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { playTrack } = usePlayer();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [library, setLibrary] = useState<LibraryTrack[]>([]);
@@ -230,7 +232,7 @@ export default function Profile() {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/90 to-primary/5 py-8 relative">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/90 to-primary/5 py-8 relative pb-24">
       {/* Back to Home Button */}
       <Button 
         variant="ghost" 
@@ -505,7 +507,15 @@ export default function Profile() {
                                 variant="ghost"
                                 size="sm"
                                 className="w-8 h-8 p-0"
-                                onClick={() => window.open(`https://www.youtube.com/watch?v=${track.video_id}`, '_blank')}
+                                onClick={() => {
+                                  const trackToPlay = {
+                                    videoId: track.video_id,
+                                    title: track.title,
+                                    artist: track.artist || 'Unknown Artist',
+                                    thumbnail: track.thumbnail_url
+                                  };
+                                  playTrack(trackToPlay);
+                                }}
                               >
                                 <Play className="w-4 h-4" />
                               </Button>

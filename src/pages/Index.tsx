@@ -20,7 +20,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background font-gothic">
+    <div className="min-h-screen bg-background font-gothic pb-24">
       <Hero />
       <Features />
       <Philosophy />

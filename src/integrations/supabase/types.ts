@@ -136,6 +136,39 @@ export type Database = {
         }
         Relationships: []
       }
+      listening_history: {
+        Row: {
+          artist: string | null
+          duration: string | null
+          id: string
+          played_at: string
+          thumbnail_url: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          artist?: string | null
+          duration?: string | null
+          id?: string
+          played_at?: string
+          thumbnail_url?: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          artist?: string | null
+          duration?: string | null
+          id?: string
+          played_at?: string
+          thumbnail_url?: string | null
+          title?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           chat_id: string

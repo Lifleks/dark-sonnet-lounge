@@ -140,8 +140,26 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
     }
   };
 
-  const playTrack = (track: Track) => {
+  const playTrack = async (track: Track) => {
     setCurrentTrack(track);
+    
+    // Add to listening history if user is logged in
+    if (user && navigator.onLine) {
+      try {
+        await supabase
+          .from('listening_history')
+          .insert({
+            user_id: user.id,
+            video_id: track.videoId,
+            title: track.title,
+            artist: track.artist,
+            thumbnail_url: track.thumbnail || null,
+            duration: formatTime(duration) || null
+          });
+      } catch (error) {
+        console.error('Error adding to listening history:', error);
+      }
+    }
   };
 
   const handleProgressChange = (value: number[]) => {

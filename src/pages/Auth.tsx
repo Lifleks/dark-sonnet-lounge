@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
+import { ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -25,9 +26,9 @@ const Auth = () => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Redirect authenticated users to main page
+        // Redirect authenticated users to profile
         if (session?.user) {
-          navigate('/');
+          navigate('/profile');
         }
       }
     );
@@ -38,7 +39,7 @@ const Auth = () => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        navigate('/');
+        navigate('/profile');
       }
     });
 
@@ -135,7 +136,17 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-gothic flex items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-gothic flex items-center justify-center p-6 relative">
+      {/* Back to Home Button */}
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 z-30 text-muted-foreground hover:text-gothic-highlight"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        На главную
+      </Button>
+
       {/* Gothic Effects */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gothic-glow/10 rounded-full blur-3xl animate-gothic-glow" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gothic-glow/5 rounded-full blur-3xl animate-float" />
@@ -246,16 +257,6 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
-
-        <div className="text-center mt-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="text-muted-foreground hover:text-gothic-highlight"
-          >
-            ← Вернуться на главную
-          </Button>
-        </div>
       </div>
     </div>
   );

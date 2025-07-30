@@ -47,9 +47,9 @@ const Hero = () => {
               variant="hero" 
               size="lg" 
               className="text-lg px-12 py-4"
-              onClick={() => navigate(user ? '/profile' : '/auth')}
+              onClick={() => navigate('/auth')}
             >
-              {user ? "Личный кабинет" : "Войти в бездну"}
+              Войти в бездну
             </Button>
             <Button variant="gothic" size="lg" className="text-lg px-12 py-4">
               Исследовать галерею

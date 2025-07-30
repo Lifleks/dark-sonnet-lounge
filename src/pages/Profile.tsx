@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Edit, Trash2, Music, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Music, Upload, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 interface Profile {
   id: string;
@@ -29,6 +29,7 @@ interface Playlist {
 export default function Profile() {
   const { user, loading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -180,7 +181,17 @@ export default function Profile() {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/90 to-primary/5 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/90 to-primary/5 py-8 relative">
+      {/* Back to Home Button */}
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 z-30 text-muted-foreground hover:text-gothic-highlight"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        На главную
+      </Button>
+
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Profile Section */}
         <Card className="mb-8 bg-background/60 backdrop-blur-sm border-primary/20">

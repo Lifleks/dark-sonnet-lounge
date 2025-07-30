@@ -108,7 +108,7 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
   }, [currentTrack, user]);
 
   const checkIfInLibrary = async () => {
-    if (!currentTrack || !user) return;
+    if (!currentTrack || !user || !navigator.onLine) return;
 
     const { data } = await supabase
       .from('user_library')

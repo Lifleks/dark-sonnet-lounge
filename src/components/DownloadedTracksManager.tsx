@@ -63,14 +63,36 @@ export default function DownloadedTracksManager({ libraryTracks, onLibraryUpdate
   const fetchDownloadedTracks = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('downloaded_tracks')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('downloaded_at', { ascending: false });
+    try {
+      // Если нет интернета, загружаем из localStorage
+      if (!navigator.onLine) {
+        const localData = localStorage.getItem(`downloaded_tracks_${user.id}`);
+        if (localData) {
+          const tracks = JSON.parse(localData);
+          setDownloadedTracks(tracks);
+        }
+        return;
+      }
 
-    if (data) {
-      setDownloadedTracks(data);
+      // Если есть интернет, загружаем из базы данных
+      const { data } = await supabase
+        .from('downloaded_tracks')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('downloaded_at', { ascending: false });
+
+      if (data) {
+        setDownloadedTracks(data);
+        // Сохраняем в localStorage для офлайн доступа
+        localStorage.setItem(`downloaded_tracks_${user.id}`, JSON.stringify(data));
+      }
+    } catch (error) {
+      // При ошибке также пробуем загрузить из localStorage
+      const localData = localStorage.getItem(`downloaded_tracks_${user.id}`);
+      if (localData) {
+        const tracks = JSON.parse(localData);
+        setDownloadedTracks(tracks);
+      }
     }
   };
 
@@ -119,6 +141,22 @@ export default function DownloadedTracksManager({ libraryTracks, onLibraryUpdate
       });
 
       fetchDownloadedTracks();
+      // Обновляем localStorage после успешного скачивания
+      if (navigator.onLine) {
+        const currentTracks = [...downloadedTracks, {
+          id: `temp_${Date.now()}`,
+          user_id: user.id,
+          video_id: track.video_id,
+          title: track.title,
+          artist: track.artist || 'Unknown Artist',
+          thumbnail_url: track.thumbnail_url,
+          duration: track.duration,
+          audio_file_path: audioFilePath,
+          file_size: fileSize,
+          downloaded_at: new Date().toISOString()
+        }];
+        localStorage.setItem(`downloaded_tracks_${user.id}`, JSON.stringify(currentTracks));
+      }
     } catch (error: any) {
       toast({
         title: "Ошибка скачивания",
@@ -145,6 +183,11 @@ export default function DownloadedTracksManager({ libraryTracks, onLibraryUpdate
       });
 
       fetchDownloadedTracks();
+      // Обновляем localStorage после удаления
+      if (navigator.onLine) {
+        const updatedTracks = downloadedTracks.filter(t => t.id !== track.id);
+        localStorage.setItem(`downloaded_tracks_${user.id}`, JSON.stringify(updatedTracks));
+      }
     } catch (error) {
       toast({
         title: "Ошибка",

@@ -83,6 +83,8 @@ export default function Profile() {
   }
 
   const fetchProfile = async () => {
+    if (!navigator.onLine) return; // Skip if offline
+    
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -100,6 +102,8 @@ export default function Profile() {
   };
 
   const fetchPlaylists = async () => {
+    if (!navigator.onLine) return; // Skip if offline
+    
     const { data } = await supabase
       .from('playlists')
       .select('*')
@@ -112,6 +116,8 @@ export default function Profile() {
   };
 
   const fetchLibrary = async () => {
+    if (!navigator.onLine) return; // Skip if offline
+    
     const { data } = await supabase
       .from('user_library')
       .select('*')

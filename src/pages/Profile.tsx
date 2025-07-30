@@ -17,6 +17,7 @@ interface Profile {
   display_name: string | null;
   avatar_url: string | null;
   bio: string | null;
+  tag: string | null;
 }
 
 interface Playlist {
@@ -48,17 +49,20 @@ export default function Profile() {
   const [library, setLibrary] = useState<LibraryTrack[]>([]);
   const [activeTab, setActiveTab] = useState<'playlists' | 'library' | 'downloads'>('playlists');
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
+  const [editingProfile, setEditingProfile] = useState({
     display_name: '',
     bio: '',
-    avatar_url: ''
+    tag: ''
   });
+  const [editingPlaylist, setEditingPlaylist] = useState({ name: '', description: '' });
+  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
   const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
   const [newPlaylist, setNewPlaylist] = useState({
     name: '',
     description: ''
   });
   const [uploading, setUploading] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -85,26 +89,26 @@ export default function Profile() {
   }
 
   const fetchProfile = async () => {
-    if (!navigator.onLine) return; // Skip if offline
+    if (!navigator.onLine) return;
     
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, display_name, avatar_url, bio, tag')
       .eq('user_id', user.id)
       .maybeSingle();
-    
+
     if (data) {
       setProfile(data);
-      setFormData({
+      setEditingProfile({
         display_name: data.display_name || '',
         bio: data.bio || '',
-        avatar_url: data.avatar_url || ''
+        tag: data.tag || ''
       });
     }
   };
 
   const fetchPlaylists = async () => {
-    if (!navigator.onLine) return; // Skip if offline
+    if (!navigator.onLine) return;
     
     const { data } = await supabase
       .from('playlists')
@@ -118,7 +122,7 @@ export default function Profile() {
   };
 
   const fetchLibrary = async () => {
-    if (!navigator.onLine) return; // Skip if offline
+    if (!navigator.onLine) return;
     
     const { data } = await supabase
       .from('user_library')
@@ -155,14 +159,15 @@ export default function Profile() {
     }
   };
 
-  const saveProfile = async () => {
+  const handleSaveProfile = async () => {
+    setUpdating(true);
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          display_name: formData.display_name,
-          bio: formData.bio,
-          avatar_url: formData.avatar_url
+          display_name: editingProfile.display_name.trim() || null,
+          bio: editingProfile.bio.trim() || null,
+          tag: editingProfile.tag.trim() || null
         })
         .eq('user_id', user.id);
 
@@ -175,12 +180,22 @@ export default function Profile() {
       
       setIsEditing(false);
       fetchProfile();
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить профиль",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      if (error.code === '23505') {
+        toast({
+          title: "Ошибка",
+          description: "Этот тег уже используется другим пользователем",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось обновить профиль",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -241,7 +256,6 @@ export default function Profile() {
     const file = event.target.files?.[0];
     if (!file || !user) return;
 
-    // Проверяем размер файла (макс 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "Ошибка",
@@ -254,11 +268,9 @@ export default function Profile() {
     setUploading(true);
 
     try {
-      // Создаем уникальное имя файла
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}/avatar.${fileExt}`;
 
-      // Удаляем старый аватар если есть
       if (profile?.avatar_url) {
         const oldFileName = profile.avatar_url.split('/').pop();
         if (oldFileName) {
@@ -268,27 +280,22 @@ export default function Profile() {
         }
       }
 
-      // Загружаем новый файл
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // Получаем публичный URL
       const { data: urlData } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
-      // Обновляем профиль с новым URL аватара
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: urlData.publicUrl })
         .eq('user_id', user.id);
 
       if (updateError) throw updateError;
-
-      setFormData(prev => ({ ...prev, avatar_url: urlData.publicUrl }));
       
       toast({
         title: "Аватар обновлен",
@@ -312,7 +319,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/90 to-primary/5 py-8 relative pb-24">
-      {/* Back to Home Button */}
       <Button 
         variant="ghost" 
         onClick={() => navigate('/')}
@@ -323,7 +329,6 @@ export default function Profile() {
       </Button>
 
       <div className="container mx-auto px-4 max-w-6xl">
-        {/* Profile Section */}
         <Card className="mb-8 bg-background/60 backdrop-blur-sm border-primary/20">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -376,46 +381,50 @@ export default function Profile() {
               
               <div className="flex-1 space-y-4">
                 {isEditing ? (
-                  <>
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-foreground font-gothic">Имя</label>
+                      <label className="text-sm font-medium">Имя пользователя</label>
                       <Input
-                        value={formData.display_name}
-                        onChange={(e) => setFormData({...formData, display_name: e.target.value})}
+                        value={editingProfile.display_name}
+                        onChange={(e) => setEditingProfile({...editingProfile, display_name: e.target.value})}
                         placeholder="Введите ваше имя"
-                        className="mt-1 bg-background/50 border-primary/20"
                       />
                     </div>
-                    
                     <div>
-                      <label className="text-sm font-medium text-foreground font-gothic">Описание</label>
+                      <label className="text-sm font-medium">Тег (для поиска в друзьях)</label>
+                      <Input
+                        value={editingProfile.tag}
+                        onChange={(e) => setEditingProfile({...editingProfile, tag: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '')})}
+                        placeholder="Введите уникальный тег (только английские буквы, цифры и _)"
+                        maxLength={20}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {editingProfile.tag ? `Ваш тег: @${editingProfile.tag}` : 'Тег поможет друзьям найти вас'}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">О себе</label>
                       <Textarea
-                        value={formData.bio}
-                        onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                        placeholder="Расскажите о себе..."
-                        className="mt-1 bg-background/50 border-primary/20 resize-none"
-                        rows={3}
+                        value={editingProfile.bio}
+                        onChange={(e) => setEditingProfile({...editingProfile, bio: e.target.value})}
+                        placeholder="Расскажите о себе"
+                        className="min-h-[100px]"
                       />
                     </div>
-                    
                     <div className="flex gap-2">
-                      <Button onClick={saveProfile} className="bg-primary hover:bg-primary/90">
-                        Сохранить
+                      <Button onClick={handleSaveProfile} disabled={updating}>
+                        {updating ? "Сохранение..." : "Сохранить"}
                       </Button>
-                      <Button 
-                        onClick={() => setIsEditing(false)} 
-                        variant="outline"
-                        className="border-primary/20"
-                      >
-                        Отменить
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        Отмена
                       </Button>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <div>
                       <h3 className="text-xl font-bold text-foreground font-gothic">{displayName}</h3>
-                      <p className="text-muted-foreground">{user.email}</p>
+                      <p className="text-sm text-muted-foreground">{profile?.tag ? `@${profile.tag}` : 'Тег не установлен'}</p>
                     </div>
                     
                     {profile?.bio && (
@@ -441,7 +450,6 @@ export default function Profile() {
                   Моя музыка
                 </CardTitle>
                 
-                {/* Tabs */}
                 <div className="flex bg-background/30 rounded-lg p-1">
                   <Button
                     variant={activeTab === 'playlists' ? 'default' : 'ghost'}
@@ -578,7 +586,6 @@ export default function Profile() {
                 </div>
               </>
             ) : activeTab === 'library' ? (
-              /* Library Tab */
               <div className="space-y-4">
                 {library.length > 0 ? (
                   <div className="grid grid-cols-1 gap-3">
@@ -649,7 +656,6 @@ export default function Profile() {
                 )}
               </div>
             ) : (
-              /* Downloads Tab */
               <DownloadedTracksManager 
                 libraryTracks={library} 
                 onLibraryUpdate={fetchLibrary}

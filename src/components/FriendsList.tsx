@@ -27,6 +27,7 @@ interface SearchUser {
   user_id: string;
   display_name: string | null;
   avatar_url: string | null;
+  tag: string | null;
 }
 
 interface FriendsListProps {
@@ -52,7 +53,7 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
 
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
-      if (searchQuery.trim().length >= 2) {
+      if (searchQuery.trim().length >= 1) {
         searchUsers();
       } else {
         setSearchResults([]);
@@ -130,16 +131,17 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
   };
 
   const searchUsers = async () => {
-    if (!searchQuery.trim() || searchQuery.length < 2) return;
+    if (!searchQuery.trim() || searchQuery.length < 1) return;
 
     setSearching(true);
     try {
+      const searchTerm = searchQuery.trim().toLowerCase();
       const { data: users } = await supabase
         .from('profiles')
-        .select('id, user_id, display_name, avatar_url')
-        .ilike('display_name', `%${searchQuery.trim()}%`)
+        .select('id, user_id, display_name, avatar_url, tag')
+        .or(`tag.ilike.%${searchTerm}%,display_name.ilike.%${searchTerm}%`)
         .neq('user_id', user?.id) // Exclude current user
-        .limit(5);
+        .limit(10);
 
       if (users && users.length > 0) {
         // Filter out users who are already friends or have pending requests
@@ -160,7 +162,7 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
         setShowDropdown(filteredUsers.length > 0);
       } else {
         setSearchResults([]);
-        setShowDropdown(searchQuery.length >= 2);
+        setShowDropdown(searchQuery.length >= 1);
       }
     } catch (error) {
       console.error('Error searching users:', error);
@@ -270,7 +272,7 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Input
-                  placeholder="Поиск по имени пользователя..."
+                  placeholder="Поиск по тегу или имени..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -305,6 +307,9 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
                         <p className="font-medium text-sm">
                           {searchUser.display_name || 'Пользователь'}
                         </p>
+                        {searchUser.tag && (
+                          <p className="text-xs text-primary">@{searchUser.tag}</p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           Нажмите, чтобы добавить в друзья
                         </p>
@@ -316,7 +321,7 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
               </div>
             )}
             
-            {showDropdown && searchResults.length === 0 && searchQuery.length >= 2 && !searching && (
+            {showDropdown && searchResults.length === 0 && searchQuery.length >= 1 && !searching && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-primary/20 rounded-lg shadow-lg z-50 p-3">
                 <p className="text-sm text-muted-foreground text-center">
                   Пользователи не найдены

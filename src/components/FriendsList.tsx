@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, MessageCircle, UserMinus, Search } from "lucide-react";
+import { UserPlus, MessageCircle, UserMinus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Friend {
@@ -22,6 +22,13 @@ interface Friend {
   };
 }
 
+interface SearchUser {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+}
+
 interface FriendsListProps {
   onStartChat: (friendId: string, friendName: string) => void;
 }
@@ -31,14 +38,30 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
   const { toast } = useToast();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<Friend[]>([]);
-  const [searchEmail, setSearchEmail] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadFriends();
     }
   }, [user]);
+
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        searchUsers();
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchQuery]);
 
   const loadFriends = async () => {
     try {
@@ -106,57 +129,55 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
     }
   };
 
-  const sendFriendRequest = async () => {
-    if (!searchEmail.trim()) return;
+  const searchUsers = async () => {
+    if (!searchQuery.trim() || searchQuery.length < 2) return;
 
+    setSearching(true);
     try {
-      // Find user by email
-      const { data: profileData } = await supabase
+      const { data: users } = await supabase
         .from('profiles')
-        .select('id, user_id, display_name')
-        .ilike('display_name', `%${searchEmail}%`)
-        .single();
+        .select('id, user_id, display_name, avatar_url')
+        .ilike('display_name', `%${searchQuery.trim()}%`)
+        .neq('user_id', user?.id) // Exclude current user
+        .limit(5);
 
-      if (!profileData) {
-        toast({
-          title: "Пользователь не найден",
-          description: "Проверьте правильность введенных данных",
-          variant: "destructive"
+      if (users && users.length > 0) {
+        // Filter out users who are already friends or have pending requests
+        const userIds = users.map(u => u.user_id);
+        const { data: existingConnections } = await supabase
+          .from('friendships')
+          .select('requester_id, addressee_id')
+          .or(`and(requester_id.eq.${user?.id},addressee_id.in.(${userIds.join(',')})),and(addressee_id.eq.${user?.id},requester_id.in.(${userIds.join(',')}))`);
+
+        const connectedUserIds = new Set();
+        existingConnections?.forEach(conn => {
+          connectedUserIds.add(conn.requester_id);
+          connectedUserIds.add(conn.addressee_id);
         });
-        return;
+
+        const filteredUsers = users.filter(u => !connectedUserIds.has(u.user_id));
+        setSearchResults(filteredUsers);
+        setShowDropdown(filteredUsers.length > 0);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(searchQuery.length >= 2);
       }
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setSearchResults([]);
+      setShowDropdown(false);
+    } finally {
+      setSearching(false);
+    }
+  };
 
-      if (profileData.user_id === user?.id) {
-        toast({
-          title: "Ошибка",
-          description: "Нельзя добавить себя в друзья",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Check if friendship already exists
-      const { data: existingFriendship } = await supabase
-        .from('friendships')
-        .select('id')
-        .or(`and(requester_id.eq.${user?.id},addressee_id.eq.${profileData.user_id}),and(requester_id.eq.${profileData.user_id},addressee_id.eq.${user?.id})`)
-        .single();
-
-      if (existingFriendship) {
-        toast({
-          title: "Заявка уже существует",
-          description: "Вы уже отправили заявку или уже являетесь друзьями",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Send friend request
+  const sendFriendRequest = async (targetUser: SearchUser) => {
+    try {
       const { error } = await supabase
         .from('friendships')
         .insert({
           requester_id: user?.id,
-          addressee_id: profileData.user_id,
+          addressee_id: targetUser.user_id,
           status: 'pending'
         });
 
@@ -164,9 +185,12 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
 
       toast({
         title: "Заявка отправлена",
-        description: `Заявка в друзья отправлена пользователю ${profileData.display_name}`,
+        description: `Заявка в друзья отправлена пользователю ${targetUser.display_name}`,
       });
-      setSearchEmail("");
+      
+      setSearchQuery("");
+      setSearchResults([]);
+      setShowDropdown(false);
     } catch (error) {
       console.error('Error sending friend request:', error);
       toast({
@@ -242,16 +266,63 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Поиск по имени пользователя..."
-              value={searchEmail}
-              onChange={(e) => setSearchEmail(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={sendFriendRequest} disabled={!searchEmail.trim()}>
-              <Search className="w-4 h-4" />
-            </Button>
+          <div className="relative">
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Поиск по имени пользователя..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                  }}
+                  className="flex-1"
+                />
+                {searching && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Dropdown with search results */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-primary/20 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                {searchResults.map((searchUser) => (
+                  <div
+                    key={searchUser.id}
+                    className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer border-b border-primary/10 last:border-b-0"
+                    onClick={() => sendFriendRequest(searchUser)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={searchUser.avatar_url || ''} />
+                        <AvatarFallback>
+                          {searchUser.display_name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium text-sm">
+                          {searchUser.display_name || 'Пользователь'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Нажмите, чтобы добавить в друзья
+                        </p>
+                      </div>
+                    </div>
+                    <UserPlus className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {showDropdown && searchResults.length === 0 && searchQuery.length >= 2 && !searching && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-primary/20 rounded-lg shadow-lg z-50 p-3">
+                <p className="text-sm text-muted-foreground text-center">
+                  Пользователи не найдены
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

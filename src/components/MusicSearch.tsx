@@ -38,7 +38,7 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
   const searchTimeout = useRef<NodeJS.Timeout>();
 
   // YouTube API key - в продакшене это должно быть в переменных окружения
-  const YOUTUBE_API_KEY = "AIzaSyAOiCWZNtNjUwnK1CsZ_qP5w7xqN--__fM"; // Замените на ваш API ключ
+  const YOUTUBE_API_KEY = "AIzaSyB_t3uhf9i8Mdx7lFPTPmkV7sesONyu9y4"; // Замените на ваш API ключ
 
   const searchYouTube = async (searchQuery: string) => {
     if (!searchQuery.trim()) {

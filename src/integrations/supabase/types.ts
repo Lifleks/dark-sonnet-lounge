@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      downloaded_tracks: {
+        Row: {
+          artist: string | null
+          audio_file_path: string
+          downloaded_at: string
+          duration: string | null
+          file_size: number | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Insert: {
+          artist?: string | null
+          audio_file_path: string
+          downloaded_at?: string
+          duration?: string | null
+          file_size?: number | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          user_id: string
+          video_id: string
+        }
+        Update: {
+          artist?: string | null
+          audio_file_path?: string
+          downloaded_at?: string
+          duration?: string | null
+          file_size?: number | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          user_id?: string
+          video_id?: string
+        }
+        Relationships: []
+      }
       playlists: {
         Row: {
           cover_url: string | null

@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Edit, Trash2, Music, Upload, ArrowLeft, Library, Play } from "lucide-react";
+import { Plus, Edit, Trash2, Music, Upload, ArrowLeft, Library, Play, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate, useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
+import DownloadedTracksManager from "@/components/DownloadedTracksManager";
 
 interface Profile {
   id: string;
@@ -45,7 +46,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [library, setLibrary] = useState<LibraryTrack[]>([]);
-  const [activeTab, setActiveTab] = useState<'playlists' | 'library'>('playlists');
+  const [activeTab, setActiveTab] = useState<'playlists' | 'library' | 'downloads'>('playlists');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     display_name: '',
@@ -366,6 +367,15 @@ export default function Profile() {
                     <Library className="w-4 h-4 mr-1" />
                     Библиотека ({library.length})
                   </Button>
+                  <Button
+                    variant={activeTab === 'downloads' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setActiveTab('downloads')}
+                    className="text-sm"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    Скачанные
+                  </Button>
                 </div>
               </div>
               
@@ -474,7 +484,7 @@ export default function Profile() {
                   )}
                 </div>
               </>
-            ) : (
+            ) : activeTab === 'library' ? (
               /* Library Tab */
               <div className="space-y-4">
                 {library.length > 0 ? (
@@ -545,6 +555,12 @@ export default function Profile() {
                   </div>
                 )}
               </div>
+            ) : (
+              /* Downloads Tab */
+              <DownloadedTracksManager 
+                libraryTracks={library} 
+                onLibraryUpdate={fetchLibrary}
+              />
             )}
           </CardContent>
         </Card>

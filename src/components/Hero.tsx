@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import MusicPlayer from "@/components/MusicPlayer";
 import heroImage from "@/assets/gothic-hero-bg.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-gothic overflow-hidden">
       {/* Background Image */}
@@ -30,7 +33,12 @@ const Hero = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-12">
-            <Button variant="hero" size="lg" className="text-lg px-12 py-4">
+            <Button 
+              variant="hero" 
+              size="lg" 
+              className="text-lg px-12 py-4"
+              onClick={() => navigate('/auth')}
+            >
               Войти в бездну
             </Button>
             <Button variant="gothic" size="lg" className="text-lg px-12 py-4">

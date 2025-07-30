@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from '@supabase/supabase-js';
 import { ArrowLeft } from "lucide-react";
+import PasswordInput from "@/components/PasswordInput";
 
 const Auth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -135,6 +136,45 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        title: "Введите email",
+        description: "Для сброса пароля нужно указать email",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`
+      });
+
+      if (error) {
+        toast({
+          title: "Ошибка сброса пароля",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Письмо отправлено",
+          description: "Проверьте почту для сброса пароля"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Произошла непредвиденная ошибка",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-gothic flex items-center justify-center p-6 relative">
       {/* Back to Home Button */}
@@ -194,9 +234,8 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signin-password">Пароль</Label>
-                    <Input
+                    <PasswordInput
                       id="signin-password"
-                      type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
@@ -212,6 +251,16 @@ const Auth = () => {
                     disabled={isLoading}
                   >
                     {isLoading ? "Входим..." : "Войти в бездну"}
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-muted-foreground hover:text-gothic-highlight"
+                    onClick={handlePasswordReset}
+                    disabled={isLoading}
+                  >
+                    Забыли пароль? Восстановить
                   </Button>
                 </form>
               </TabsContent>
@@ -232,9 +281,8 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Пароль</Label>
-                    <Input
+                    <PasswordInput
                       id="signup-password"
-                      type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"

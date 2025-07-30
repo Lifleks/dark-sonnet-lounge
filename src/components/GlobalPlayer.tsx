@@ -75,7 +75,7 @@ const GlobalPlayer = () => {
   if (!currentTrack) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-gothic-accent">
+    <div className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t transform transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_hsl(var(--gothic-glow)/0.4)]">
       {/* Скрытый YouTube плеер */}
       <div style={{ display: 'none' }}>
         <YouTube
@@ -86,7 +86,7 @@ const GlobalPlayer = () => {
         />
       </div>
 
-      <Card className="bg-transparent border-0 shadow-none rounded-none p-4">
+      <Card className="bg-transparent border-0 shadow-none rounded-none p-4 transform-gpu">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4">
             {/* Track Info */}

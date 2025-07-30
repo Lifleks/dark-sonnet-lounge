@@ -64,6 +64,11 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 20px hsl(0 0% 85% / 0.3);
     --shadow-deep: 0 12px 40px hsl(0 0% 0% / 0.9);
 
+    /* Glass Effect */
+    --glass-bg: hsl(0 0% 8% / 0.7);
+    --glass-border: hsl(0 0% 30% / 0.3);
+    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.5);
+
     /* Gothic Animations */
     --transition-gothic: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
     --transition-glow: all 0.3s ease-in-out;
@@ -78,4 +83,53 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-[var(--glass-bg)] backdrop-blur-lg border border-[var(--glass-border)] shadow-[var(--glass-shadow)];
+  }
+  
+  .brain-fall {
+    animation: brain-fall 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+  
+  .brain-return {
+    animation: brain-return 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  .profile-glow {
+    @apply ring-2 ring-gothic-highlight ring-offset-2 ring-offset-background shadow-[0_0_20px_hsl(var(--gothic-glow)/0.5)];
+  }
+}
+
+@keyframes brain-fall {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(10px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(20px) scale(0.9);
+    opacity: 0.6;
+  }
+}
+
+@keyframes brain-return {
+  0% {
+    transform: translateY(20px) scale(0.9);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(10px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
 }

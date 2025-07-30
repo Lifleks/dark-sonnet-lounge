@@ -24,7 +24,9 @@ const Hero = () => {
       {/* User Menu */}
       {user && (
         <div className="absolute top-6 right-6 z-30">
-          <UserMenu />
+          <div className="profile-glow rounded-lg">
+            <UserMenu />
+          </div>
         </div>
       )}
       

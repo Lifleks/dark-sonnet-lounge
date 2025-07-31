@@ -139,22 +139,33 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
       const { data: users } = await supabase
         .from('profiles')
         .select('id, user_id, display_name, avatar_url, tag')
-        .or(`tag.ilike.%${searchTerm}%,display_name.ilike.%${searchTerm}%`)
+        .or(`tag.eq.${searchTerm},display_name.ilike.%${searchTerm}%`)
         .neq('user_id', user?.id) // Exclude current user
         .limit(10);
 
       if (users && users.length > 0) {
         // Filter out users who are already friends or have pending requests
         const userIds = users.map(u => u.user_id);
-        const { data: existingConnections } = await supabase
+        
+        // Check for existing friendships in both directions
+        const { data: existingConnections1 } = await supabase
           .from('friendships')
           .select('requester_id, addressee_id')
-          .or(`and(requester_id.eq.${user?.id},addressee_id.in.(${userIds.join(',')})),and(addressee_id.eq.${user?.id},requester_id.in.(${userIds.join(',')}))`);
+          .eq('requester_id', user?.id)
+          .in('addressee_id', userIds);
+          
+        const { data: existingConnections2 } = await supabase
+          .from('friendships')
+          .select('requester_id, addressee_id')
+          .eq('addressee_id', user?.id)
+          .in('requester_id', userIds);
 
         const connectedUserIds = new Set();
-        existingConnections?.forEach(conn => {
-          connectedUserIds.add(conn.requester_id);
+        existingConnections1?.forEach(conn => {
           connectedUserIds.add(conn.addressee_id);
+        });
+        existingConnections2?.forEach(conn => {
+          connectedUserIds.add(conn.requester_id);
         });
 
         const filteredUsers = users.filter(u => !connectedUserIds.has(u.user_id));
@@ -310,9 +321,6 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
                         {searchUser.tag && (
                           <p className="text-xs text-primary">@{searchUser.tag}</p>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                          Нажмите, чтобы добавить в друзья
-                        </p>
                       </div>
                     </div>
                     <UserPlus className="w-4 h-4 text-muted-foreground" />
@@ -324,7 +332,10 @@ export default function FriendsList({ onStartChat }: FriendsListProps) {
             {showDropdown && searchResults.length === 0 && searchQuery.length >= 1 && !searching && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-primary/20 rounded-lg shadow-lg z-50 p-3">
                 <p className="text-sm text-muted-foreground text-center">
-                  Пользователи не найдены
+                  {searchQuery.startsWith('@') || searchQuery.includes('@') 
+                    ? `Пользователь с тегом "${searchQuery}" не найден`
+                    : `Пользователи с именем "${searchQuery}" не найдены`
+                  }
                 </p>
               </div>
             )}

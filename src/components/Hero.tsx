@@ -53,7 +53,12 @@ const Hero = () => {
             >
               Войти в бездну
             </Button>
-            <Button variant="gothic" size="lg" className="text-lg px-12 py-4">
+            <Button 
+              variant="gothic" 
+              size="lg" 
+              className="text-lg px-12 py-4"
+              onClick={() => navigate('/gallery')}
+            >
               Исследовать галерею
             </Button>
           </div>

@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Music, Play, User, ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Search, Music, Play, User, ArrowLeft, Album } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -15,6 +16,13 @@ interface Track {
   title: string;
   artist: string;
   thumbnail?: string;
+}
+
+interface ArtistInfo {
+  name: string;
+  tracks: Track[];
+  totalTracks: number;
+  albums: string[];
 }
 
 interface ArtistGroup {
@@ -35,6 +43,9 @@ const Gallery = () => {
   const [loading, setLoading] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState<ArtistGroup | null>(null);
+  const [showArtistModal, setShowArtistModal] = useState(false);
+  const [currentArtistInfo, setCurrentArtistInfo] = useState<ArtistInfo | null>(null);
+  const [searchedArtists, setSearchedArtists] = useState<ArtistInfo[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -133,23 +144,53 @@ const Gallery = () => {
 
       setSearchResults(uniqueTracks);
 
-      // Группируем по исполнителям для отображения исполнителей с более чем 10 треками
+      // Группируем по исполнителям для создания профилей исполнителей
       const artistGroupsMap = uniqueTracks.reduce((acc, track) => {
-        if (!acc[track.artist]) {
-          acc[track.artist] = [];
+        const artistName = track.artist.toLowerCase();
+        if (!acc[artistName]) {
+          acc[artistName] = [];
         }
-        acc[track.artist].push(track);
+        acc[artistName].push(track);
         return acc;
       }, {} as Record<string, Track[]>);
 
-      const groups = Object.entries(artistGroupsMap)
-        .map(([artist, tracks]) => ({
-          artist,
-          tracks,
-          count: tracks.length
-        }))
-        .filter(group => group.count >= 10)
-        .sort((a, b) => b.count - a.count);
+      // Создаем информацию об исполнителях
+      const artistsInfo: ArtistInfo[] = Object.entries(artistGroupsMap)
+        .filter(([artistName]) => artistName.toLowerCase().includes(query.toLowerCase()))
+        .map(([artistName, tracks]) => {
+          // Извлекаем уникальные альбомы (предполагаем, что альбом может быть частью названия)
+          const albums = [...new Set(
+            tracks
+              .map(track => {
+                // Простая логика извлечения альбома из названия трека
+                const parts = track.title.split('-');
+                if (parts.length > 1) {
+                  return parts[0].trim();
+                }
+                return 'Синглы';
+              })
+              .filter(album => album.length > 0)
+          )];
+
+          return {
+            name: tracks[0].artist, // Используем оригинальное написание
+            tracks,
+            totalTracks: tracks.length,
+            albums
+          };
+        })
+        .sort((a, b) => b.totalTracks - a.totalTracks);
+
+      setSearchedArtists(artistsInfo);
+
+      // Группируем по исполнителям для отображения исполнителей с более чем 10 треками
+      const groups = artistsInfo
+        .filter(artist => artist.totalTracks >= 10)
+        .map(artist => ({
+          artist: artist.name,
+          tracks: artist.tracks,
+          count: artist.totalTracks
+        }));
 
       setArtistGroups(groups);
     } catch (error) {
@@ -162,6 +203,11 @@ const Gallery = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     searchTracks(searchQuery);
+  };
+
+  const openArtistModal = (artist: ArtistInfo) => {
+    setCurrentArtistInfo(artist);
+    setShowArtistModal(true);
   };
 
   const handlePlayTrack = (track: Track) => {
@@ -287,6 +333,51 @@ const Gallery = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Найденные исполнители */}
+        {searchedArtists.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Найденные исполнители
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {searchedArtists.map((artist) => (
+                  <Card 
+                    key={artist.name} 
+                    className="cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => openArtistModal(artist)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-lg">{artist.name}</h3>
+                          <p className="text-sm text-muted-foreground">{artist.totalTracks} треков</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {artist.albums.slice(0, 3).map((album, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {album}
+                              </Badge>
+                            ))}
+                            {artist.albums.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{artist.albums.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <User className="w-8 h-8 text-primary" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Исполнители с большим количеством треков */}
         {artistGroups.length > 0 && (
@@ -425,6 +516,83 @@ const Gallery = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Модальное окно исполнителя */}
+        <Dialog open={showArtistModal} onOpenChange={setShowArtistModal}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 text-2xl">
+                <User className="w-8 h-8 text-primary" />
+                {currentArtistInfo?.name}
+              </DialogTitle>
+              <DialogDescription>
+                {currentArtistInfo?.totalTracks} треков • {currentArtistInfo?.albums.length} альбомов
+              </DialogDescription>
+            </DialogHeader>
+            
+            {currentArtistInfo && (
+              <div className="space-y-6">
+                {/* Альбомы */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Album className="w-5 h-5" />
+                    Альбомы и коллекции
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {currentArtistInfo.albums.map((album, index) => (
+                      <Badge key={index} variant="outline" className="text-sm">
+                        {album}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Треки */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <Music className="w-5 h-5" />
+                    Все треки
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                    {currentArtistInfo.tracks.map((track, index) => (
+                      <Card key={`${track.videoId}-modal-${index}`} className="cursor-pointer hover:bg-accent/50 transition-colors">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-3">
+                            {track.thumbnail ? (
+                              <img 
+                                src={track.thumbnail} 
+                                alt={track.title}
+                                className="w-10 h-10 rounded object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded bg-primary/20 flex items-center justify-center">
+                                <Music className="w-5 h-5 text-primary" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm truncate">{track.title}</h4>
+                              <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                handlePlayTrack(track);
+                                setShowArtistModal(false);
+                              }}
+                            >
+                              <Play className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

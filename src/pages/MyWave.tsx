@@ -58,50 +58,66 @@ const MyWave = () => {
       const artists = preferences.preferred_artists as string[];
       setPreferredArtists(artists);
 
-      // Получаем треки предпочитаемых артистов из истории и библиотеки
-      const artistConditions = artists.map(artist => `artist.ilike.%${artist}%`).join(',');
-      
-      // Получаем треки из истории прослушиваний
-      const { data: historyTracks } = await supabase
-        .from('listening_history')
-        .select('*')
-        .or(artistConditions)
-        .order('played_at', { ascending: false })
-        .limit(50);
+      // Получаем треки предпочитаемых артистов из всех источников
+      const allTracks: Track[] = [];
 
-      // Получаем треки из библиотеки
-      const { data: libraryTracks } = await supabase
-        .from('user_library')
-        .select('*')
-        .or(artistConditions)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Для каждого предпочитаемого артиста ищем треки
+      for (const artist of artists) {
+        // Получаем треки из истории прослушиваний всех пользователей
+        const { data: historyTracks } = await supabase
+          .from('listening_history')
+          .select('*')
+          .ilike('artist', `%${artist}%`)
+          .limit(20);
 
-      // Объединяем и убираем дубликаты
-      const allTracks = [
-        ...(historyTracks || []).map(track => ({
-          videoId: track.video_id,
-          title: track.title,
-          artist: track.artist || '',
-          thumbnail: track.thumbnail_url || undefined
-        })),
-        ...(libraryTracks || []).map(track => ({
-          videoId: track.video_id,
-          title: track.title,
-          artist: track.artist || '',
-          thumbnail: track.thumbnail_url || undefined
-        }))
-      ];
+        // Получаем треки из библиотек всех пользователей
+        const { data: libraryTracks } = await supabase
+          .from('user_library')
+          .select('*')
+          .ilike('artist', `%${artist}%`)
+          .limit(20);
 
-      // Убираем дубликаты по videoId и перемешиваем
+        // Добавляем найденные треки
+        if (historyTracks) {
+          allTracks.push(...historyTracks.map(track => ({
+            videoId: track.video_id,
+            title: track.title,
+            artist: track.artist || '',
+            thumbnail: track.thumbnail_url || undefined
+          })));
+        }
+
+        if (libraryTracks) {
+          allTracks.push(...libraryTracks.map(track => ({
+            videoId: track.video_id,
+            title: track.title,
+            artist: track.artist || '',
+            thumbnail: track.thumbnail_url || undefined
+          })));
+        }
+      }
+
+      // Убираем дубликаты по videoId
       const uniqueTracks = allTracks.filter((track, index, self) => 
         index === self.findIndex(t => t.videoId === track.videoId)
       );
 
-      // Перемешиваем треки для разнообразия
-      const shuffledTracks = uniqueTracks.sort(() => Math.random() - 0.5).slice(0, 30);
-      
-      setRecommendations(shuffledTracks);
+      // Сортируем по релевантности (треки предпочитаемых артистов вначале)
+      const sortedTracks = uniqueTracks.sort((a, b) => {
+        const aIsPreferred = artists.some(artist => 
+          a.artist.toLowerCase().includes(artist.toLowerCase())
+        );
+        const bIsPreferred = artists.some(artist => 
+          b.artist.toLowerCase().includes(artist.toLowerCase())
+        );
+        
+        if (aIsPreferred && !bIsPreferred) return -1;
+        if (!aIsPreferred && bIsPreferred) return 1;
+        return Math.random() - 0.5; // Случайное перемешивание внутри группы
+      });
+
+      // Берем топ-30 треков
+      setRecommendations(sortedTracks.slice(0, 30));
     } catch (error) {
       console.error('Error loading user wave:', error);
     } finally {

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Music, Play, Waves, Users } from "lucide-react";
+import { ArrowLeft, Music, Play, Waves, Users, SkipBack, SkipForward, Pause, Shuffle } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +28,8 @@ const MyWave = () => {
   const [recommendations, setRecommendations] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
   const [preferredArtists, setPreferredArtists] = useState<string[]>([]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isWavePlaying, setIsWavePlaying] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -58,24 +60,37 @@ const MyWave = () => {
       const artists = preferences.preferred_artists as string[];
       setPreferredArtists(artists);
 
-      // Получаем треки предпочитаемых артистов из всех источников
+      // Получаем треки выбранных артистов из всех источников
       const allTracks: Track[] = [];
 
-      // Для каждого предпочитаемого артиста ищем треки
+      // Для каждого выбранного артиста ищем все доступные треки
       for (const artist of artists) {
-        // Получаем треки из истории прослушиваний всех пользователей
+        // Поиск в истории прослушиваний (всех пользователей)
         const { data: historyTracks } = await supabase
           .from('listening_history')
-          .select('*')
-          .ilike('artist', `%${artist}%`)
-          .limit(20);
+          .select('video_id, title, artist, thumbnail_url')
+          .eq('artist', artist) // Точное совпадение для выбранных артистов
+          .limit(50);
 
-        // Получаем треки из библиотек всех пользователей
+        // Поиск в библиотеках (всех пользователей)
         const { data: libraryTracks } = await supabase
           .from('user_library')
-          .select('*')
+          .select('video_id, title, artist, thumbnail_url')
+          .eq('artist', artist) // Точное совпадение для выбранных артистов
+          .limit(50);
+
+        // Поиск похожих артистов (по частичному совпадению)
+        const { data: similarHistoryTracks } = await supabase
+          .from('listening_history')
+          .select('video_id, title, artist, thumbnail_url')
           .ilike('artist', `%${artist}%`)
-          .limit(20);
+          .limit(30);
+
+        const { data: similarLibraryTracks } = await supabase
+          .from('user_library')
+          .select('video_id, title, artist, thumbnail_url')
+          .ilike('artist', `%${artist}%`)
+          .limit(30);
 
         // Добавляем найденные треки
         if (historyTracks) {
@@ -95,6 +110,24 @@ const MyWave = () => {
             thumbnail: track.thumbnail_url || undefined
           })));
         }
+
+        if (similarHistoryTracks) {
+          allTracks.push(...similarHistoryTracks.map(track => ({
+            videoId: track.video_id,
+            title: track.title,
+            artist: track.artist || '',
+            thumbnail: track.thumbnail_url || undefined
+          })));
+        }
+
+        if (similarLibraryTracks) {
+          allTracks.push(...similarLibraryTracks.map(track => ({
+            videoId: track.video_id,
+            title: track.title,
+            artist: track.artist || '',
+            thumbnail: track.thumbnail_url || undefined
+          })));
+        }
       }
 
       // Убираем дубликаты по videoId
@@ -102,27 +135,49 @@ const MyWave = () => {
         index === self.findIndex(t => t.videoId === track.videoId)
       );
 
-      // Сортируем по релевантности (треки предпочитаемых артистов вначале)
-      const sortedTracks = uniqueTracks.sort((a, b) => {
-        const aIsPreferred = artists.some(artist => 
-          a.artist.toLowerCase().includes(artist.toLowerCase())
+      // Фильтруем треки только выбранных артистов или похожих
+      const filteredTracks = uniqueTracks.filter(track => {
+        return artists.some(artist => 
+          track.artist.toLowerCase().includes(artist.toLowerCase()) ||
+          artist.toLowerCase().includes(track.artist.toLowerCase())
         );
-        const bIsPreferred = artists.some(artist => 
-          b.artist.toLowerCase().includes(artist.toLowerCase())
-        );
-        
-        if (aIsPreferred && !bIsPreferred) return -1;
-        if (!aIsPreferred && bIsPreferred) return 1;
-        return Math.random() - 0.5; // Случайное перемешивание внутри группы
       });
 
-      // Берем топ-30 треков
-      setRecommendations(sortedTracks.slice(0, 30));
+      // Перемешиваем треки для разнообразия
+      const shuffledTracks = filteredTracks.sort(() => Math.random() - 0.5);
+      
+      setRecommendations(shuffledTracks);
     } catch (error) {
       console.error('Error loading user wave:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const playWavePlaylist = () => {
+    if (recommendations.length === 0) return;
+    
+    const track = recommendations[currentTrackIndex];
+    handlePlayTrack(track);
+    setIsWavePlaying(true);
+  };
+
+  const nextTrack = () => {
+    if (recommendations.length === 0) return;
+    
+    const nextIndex = (currentTrackIndex + 1) % recommendations.length;
+    setCurrentTrackIndex(nextIndex);
+    const track = recommendations[nextIndex];
+    handlePlayTrack(track);
+  };
+
+  const prevTrack = () => {
+    if (recommendations.length === 0) return;
+    
+    const prevIndex = currentTrackIndex === 0 ? recommendations.length - 1 : currentTrackIndex - 1;
+    setCurrentTrackIndex(prevIndex);
+    const track = recommendations[prevIndex];
+    handlePlayTrack(track);
   };
 
   const handlePlayTrack = (track: Track) => {
@@ -211,6 +266,85 @@ const MyWave = () => {
           </Card>
         ) : (
           <>
+            {/* Плеер "Моей волны" */}
+            {recommendations.length > 0 && (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Waves className="w-5 h-5" />
+                    Плеер "Моя волна"
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    {recommendations[currentTrackIndex]?.thumbnail ? (
+                      <img 
+                        src={recommendations[currentTrackIndex].thumbnail} 
+                        alt={recommendations[currentTrackIndex].title}
+                        className="w-16 h-16 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded bg-primary/20 flex items-center justify-center">
+                        <Music className="w-8 h-8 text-primary" />
+                      </div>
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{recommendations[currentTrackIndex]?.title}</h3>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {recommendations[currentTrackIndex]?.artist}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Трек {currentTrackIndex + 1} из {recommendations.length}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={prevTrack}
+                        disabled={recommendations.length === 0}
+                      >
+                        <SkipBack className="w-4 h-4" />
+                      </Button>
+                      
+                      <Button
+                        size="lg"
+                        onClick={playWavePlaylist}
+                        className="h-12 w-12 rounded-full"
+                      >
+                        <Play className="w-6 h-6" />
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={nextTrack}
+                        disabled={recommendations.length === 0}
+                      >
+                        <SkipForward className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // Перемешиваем треки
+                          const shuffled = [...recommendations].sort(() => Math.random() - 0.5);
+                          setRecommendations(shuffled);
+                          setCurrentTrackIndex(0);
+                        }}
+                        disabled={recommendations.length === 0}
+                      >
+                        <Shuffle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Информация о предпочтениях */}
             <Card className="mb-6">
               <CardHeader>
@@ -265,7 +399,10 @@ const MyWave = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handlePlayTrack(track)}
+                            onClick={() => {
+                              setCurrentTrackIndex(index);
+                              handlePlayTrack(track);
+                            }}
                           >
                             <Play className="w-4 h-4" />
                           </Button>

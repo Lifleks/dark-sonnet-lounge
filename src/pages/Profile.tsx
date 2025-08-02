@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Edit, Trash2, Music, Upload, ArrowLeft, Library, Play, Download } from "lucide-react";
+import { Plus, Edit, Trash2, Music, Upload, ArrowLeft, Library, Play, Download, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Navigate, useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
 import DownloadedTracksManager from "@/components/DownloadedTracksManager";
+import RecommendationSetup from "@/components/RecommendationSetup";
 
 interface Profile {
   id: string;
@@ -63,6 +64,8 @@ export default function Profile() {
   });
   const [uploading, setUploading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [showRecommendationSetup, setShowRecommendationSetup] = useState(false);
+  const [isRecommendationConfigured, setIsRecommendationConfigured] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function Profile() {
       fetchProfile();
       fetchPlaylists();
       fetchLibrary();
+      checkRecommendationStatus();
     }
   }, [user]);
 
@@ -133,6 +137,18 @@ export default function Profile() {
     if (data) {
       setLibrary(data);
     }
+  };
+
+  const checkRecommendationStatus = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('user_preferences')
+      .select('is_configured')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    
+    setIsRecommendationConfigured(data?.is_configured || false);
   };
 
   const removeFromLibrary = async (id: string) => {
@@ -663,6 +679,53 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+
+        {/* Настройка рекомендаций */}
+        <Card className="bg-background/60 backdrop-blur-sm border-primary/20">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Settings className="w-5 h-5 text-primary" />
+                <div>
+                  <h3 className="font-medium">Персональные рекомендации</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {isRecommendationConfigured 
+                      ? "Рекомендации настроены и работают" 
+                      : "Настройте предпочтения для получения персональных рекомендаций"
+                    }
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setShowRecommendationSetup(true)}
+                  disabled={isRecommendationConfigured}
+                  variant={isRecommendationConfigured ? "outline" : "default"}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  {isRecommendationConfigured ? "Настроено" : "Настроить ваши рекомендации"}
+                </Button>
+                {isRecommendationConfigured && (
+                  <Button 
+                    onClick={() => navigate('/my-wave')}
+                    variant="default"
+                  >
+                    Моя волна
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <RecommendationSetup 
+          open={showRecommendationSetup}
+          onOpenChange={setShowRecommendationSetup}
+          onComplete={() => {
+            setIsRecommendationConfigured(true);
+            checkRecommendationStatus();
+          }}
+        />
       </div>
     </div>
   );

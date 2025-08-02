@@ -134,7 +134,22 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "friendships_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "friendships_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       listening_history: {
         Row: {
@@ -303,6 +318,36 @@ export type Database = {
           title?: string
           user_id?: string
           video_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          configured_at: string
+          created_at: string
+          id: string
+          is_configured: boolean
+          preferred_artists: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          configured_at?: string
+          created_at?: string
+          id?: string
+          is_configured?: boolean
+          preferred_artists?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          configured_at?: string
+          created_at?: string
+          id?: string
+          is_configured?: boolean
+          preferred_artists?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

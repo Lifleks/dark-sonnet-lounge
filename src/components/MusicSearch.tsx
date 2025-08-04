@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,7 @@ interface MusicSearchProps {
 }
 
 const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -98,6 +100,12 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
     setQuery("");
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+    }
+  };
+
   return (
     <div className="relative w-full max-w-md mx-auto mb-6">
       <div className="relative">
@@ -108,6 +116,7 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
           placeholder="Поиск музыки..."
           className="pl-10 bg-background/50 border-gothic-accent focus:border-gothic-glow"
           onFocus={() => query && setShowResults(true)}
+          onKeyPress={handleKeyPress}
         />
       </div>
 

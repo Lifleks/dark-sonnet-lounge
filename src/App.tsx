@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import Friends from "./pages/Friends";
 import Gallery from "./pages/Gallery";
 import MyWave from "./pages/MyWave";
+import SearchResults from "./pages/SearchResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
                 <Route path="/friends" element={<Friends />} />
                 <Route path="/gallery" element={<Gallery />} />
                 <Route path="/my-wave" element={<MyWave />} />
+                <Route path="/search" element={<SearchResults />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

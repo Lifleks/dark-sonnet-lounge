@@ -12,6 +12,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { usePlayer } from "@/contexts/PlayerContext";
 import DownloadedTracksManager from "@/components/DownloadedTracksManager";
 import RecommendationSetup from "@/components/RecommendationSetup";
+import PlaylistManager from "@/components/PlaylistManager";
 
 interface Profile {
   id: string;
@@ -54,13 +55,6 @@ export default function Profile() {
     display_name: '',
     bio: '',
     tag: ''
-  });
-  const [editingPlaylist, setEditingPlaylist] = useState({ name: '', description: '' });
-  const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(null);
-  const [isCreatingPlaylist, setIsCreatingPlaylist] = useState(false);
-  const [newPlaylist, setNewPlaylist] = useState({
-    name: '',
-    description: ''
   });
   const [uploading, setUploading] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -215,58 +209,6 @@ export default function Profile() {
     }
   };
 
-  const createPlaylist = async () => {
-    try {
-      const { error } = await supabase
-        .from('playlists')
-        .insert({
-          user_id: user.id,
-          name: newPlaylist.name,
-          description: newPlaylist.description
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Плейлист создан",
-        description: "Новый плейлист успешно добавлен."
-      });
-      
-      setIsCreatingPlaylist(false);
-      setNewPlaylist({ name: '', description: '' });
-      fetchPlaylists();
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось создать плейлист",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const deletePlaylist = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('playlists')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Плейлист удален",
-        description: "Плейлист успешно удален."
-      });
-      
-      fetchPlaylists();
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить плейлист",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -495,112 +437,16 @@ export default function Profile() {
                   </Button>
                 </div>
               </div>
-              
-              {activeTab === 'playlists' && (
-                <Button 
-                  onClick={() => setIsCreatingPlaylist(true)}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Создать плейлист
-                </Button>
-              )}
             </div>
           </CardHeader>
           
           <CardContent>
             {activeTab === 'playlists' ? (
-              <>
-                {isCreatingPlaylist && (
-                  <Card className="mb-6 bg-primary/5 border-primary/20">
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <Input
-                          placeholder="Название плейлиста"
-                          value={newPlaylist.name}
-                          onChange={(e) => setNewPlaylist({...newPlaylist, name: e.target.value})}
-                          className="bg-background/50 border-primary/20"
-                        />
-                        <Textarea
-                          placeholder="Описание плейлиста (необязательно)"
-                          value={newPlaylist.description}
-                          onChange={(e) => setNewPlaylist({...newPlaylist, description: e.target.value})}
-                          className="bg-background/50 border-primary/20 resize-none"
-                          rows={2}
-                        />
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={createPlaylist}
-                            disabled={!newPlaylist.name.trim()}
-                            className="bg-primary hover:bg-primary/90"
-                          >
-                            Создать
-                          </Button>
-                          <Button 
-                            onClick={() => setIsCreatingPlaylist(false)}
-                            variant="outline"
-                            className="border-primary/20"
-                          >
-                            Отменить
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {playlists.map((playlist) => (
-                    <Card key={playlist.id} className="bg-background/40 border-primary/20 hover:bg-background/60 transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-semibold text-foreground font-gothic truncate">
-                            {playlist.name}
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deletePlaylist(playlist.id)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 p-1 h-auto"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        
-                        {playlist.description && (
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                            {playlist.description}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{Array.isArray(playlist.tracks) ? playlist.tracks.length : 0} треков</span>
-                          <span>{new Date(playlist.created_at).toLocaleDateString('ru-RU')}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  
-                  {playlists.length === 0 && !isCreatingPlaylist && (
-                    <div className="col-span-full text-center py-12">
-                      <Music className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="font-semibold text-lg text-foreground font-gothic mb-2">
-                        Пока нет плейлистов
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        Создайте свой первый плейлист для хранения любимой музыки
-                      </p>
-                      <Button 
-                        onClick={() => setIsCreatingPlaylist(true)}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Создать плейлист
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </>
+              <PlaylistManager 
+                playlists={playlists}
+                library={library}
+                onPlaylistsUpdate={fetchPlaylists}
+              />
             ) : activeTab === 'library' ? (
               <div className="space-y-4">
                 {library.length > 0 ? (

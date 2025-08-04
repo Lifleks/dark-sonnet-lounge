@@ -63,85 +63,73 @@ const MyWave = () => {
       // Получаем треки выбранных артистов из всех источников
       const allTracks: Track[] = [];
 
+      console.log('Ищем треки для артистов:', artists);
+
       // Для каждого выбранного артиста ищем все доступные треки
       for (const artist of artists) {
-        // Поиск в истории прослушиваний (всех пользователей)
-        const { data: historyTracks } = await supabase
+        console.log('Поиск треков для артиста:', artist);
+
+        // Поиск по точному совпадению
+        const { data: exactHistoryTracks } = await supabase
           .from('listening_history')
           .select('video_id, title, artist, thumbnail_url')
-          .eq('artist', artist) // Точное совпадение для выбранных артистов
+          .ilike('artist', artist)
           .limit(50);
 
-        // Поиск в библиотеках (всех пользователей)
-        const { data: libraryTracks } = await supabase
+        const { data: exactLibraryTracks } = await supabase
           .from('user_library')
           .select('video_id, title, artist, thumbnail_url')
-          .eq('artist', artist) // Точное совпадение для выбранных артистов
+          .ilike('artist', artist)
           .limit(50);
 
-        // Поиск похожих артистов (по частичному совпадению)
-        const { data: similarHistoryTracks } = await supabase
+        // Поиск по частичному совпадению (содержит имя артиста)
+        const { data: partialHistoryTracks } = await supabase
           .from('listening_history')
           .select('video_id, title, artist, thumbnail_url')
           .ilike('artist', `%${artist}%`)
           .limit(30);
 
-        const { data: similarLibraryTracks } = await supabase
+        const { data: partialLibraryTracks } = await supabase
           .from('user_library')
           .select('video_id, title, artist, thumbnail_url')
           .ilike('artist', `%${artist}%`)
           .limit(30);
 
         // Добавляем найденные треки
-        if (historyTracks) {
-          allTracks.push(...historyTracks.map(track => ({
-            videoId: track.video_id,
-            title: track.title,
-            artist: track.artist || '',
-            thumbnail: track.thumbnail_url || undefined
-          })));
-        }
-
-        if (libraryTracks) {
-          allTracks.push(...libraryTracks.map(track => ({
-            videoId: track.video_id,
-            title: track.title,
-            artist: track.artist || '',
-            thumbnail: track.thumbnail_url || undefined
-          })));
-        }
-
-        if (similarHistoryTracks) {
-          allTracks.push(...similarHistoryTracks.map(track => ({
-            videoId: track.video_id,
-            title: track.title,
-            artist: track.artist || '',
-            thumbnail: track.thumbnail_url || undefined
-          })));
-        }
-
-        if (similarLibraryTracks) {
-          allTracks.push(...similarLibraryTracks.map(track => ({
-            videoId: track.video_id,
-            title: track.title,
-            artist: track.artist || '',
-            thumbnail: track.thumbnail_url || undefined
-          })));
-        }
+        [exactHistoryTracks, exactLibraryTracks, partialHistoryTracks, partialLibraryTracks].forEach(tracks => {
+          if (tracks) {
+            const mappedTracks = tracks.map(track => ({
+              videoId: track.video_id,
+              title: track.title,
+              artist: track.artist || '',
+              thumbnail: track.thumbnail_url || undefined
+            }));
+            allTracks.push(...mappedTracks);
+            console.log(`Найдено ${mappedTracks.length} треков для ${artist}`);
+          }
+        });
       }
+
+      console.log('Всего найдено треков:', allTracks.length);
 
       // Убираем дубликаты по videoId
       const uniqueTracks = allTracks.filter((track, index, self) => 
         index === self.findIndex(t => t.videoId === track.videoId)
       );
 
-      // Фильтруем треки только выбранных артистов или похожих
+      console.log('Уникальных треков:', uniqueTracks.length);
+
+      // Фильтруем треки только выбранных артистов
       const filteredTracks = uniqueTracks.filter(track => {
-        return artists.some(artist => 
-          track.artist.toLowerCase().includes(artist.toLowerCase()) ||
-          artist.toLowerCase().includes(track.artist.toLowerCase())
-        );
+        const isMatch = artists.some(artist => {
+          const trackArtist = track.artist.toLowerCase();
+          const selectedArtist = artist.toLowerCase();
+          return trackArtist.includes(selectedArtist) || selectedArtist.includes(trackArtist);
+        });
+        return isMatch;
       });
+
+      console.log('Отфильтрованных треков:', filteredTracks.length);
 
       // Перемешиваем треки для разнообразия
       const shuffledTracks = filteredTracks.sort(() => Math.random() - 0.5);

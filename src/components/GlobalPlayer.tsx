@@ -75,7 +75,7 @@ const GlobalPlayer = () => {
   if (!currentTrack) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t transform transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_hsl(var(--gothic-glow)/0.4)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t transform transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_0_30px_hsl(var(--gothic-glow)/0.4)] animate-slide-in-up">
       {/* Скрытый YouTube плеер */}
       <div style={{ display: 'none' }}>
         <YouTube
@@ -124,12 +124,12 @@ const GlobalPlayer = () => {
                 variant="hero"
                 size="sm"
                 onClick={togglePlay}
-                className="w-10 h-10 p-0 rounded-full"
+                className="w-10 h-10 p-0 rounded-full transition-all duration-300 hover:scale-110 hover:shadow-glow animate-pulse"
               >
                 {isPlaying ? (
-                  <Pause className="w-4 h-4" />
+                  <Pause className="w-4 h-4 transition-all duration-200" />
                 ) : (
-                  <Play className="w-4 h-4" />
+                  <Play className="w-4 h-4 transition-all duration-200" />
                 )}
               </Button>
 
@@ -149,12 +149,12 @@ const GlobalPlayer = () => {
                 variant={isInLibrary ? "destructive" : "ghost"}
                 size="sm"
                 onClick={isInLibrary ? removeFromLibrary : addToLibrary}
-                className="w-8 h-8 p-0"
+                className="w-8 h-8 p-0 transition-all duration-300 hover:scale-110"
               >
                 {isInLibrary ? (
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-4 h-4 transition-transform duration-200 hover:rotate-90" />
                 ) : (
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-4 h-4 transition-transform duration-200 hover:rotate-90" />
                 )}
               </Button>
             )}

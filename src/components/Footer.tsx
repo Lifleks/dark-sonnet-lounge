@@ -24,27 +24,27 @@ const Footer = () => {
             </h4>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-muted-foreground hover:text-gothic-glow transition-colors">
+                <a href="/privacy" className="text-muted-foreground hover:text-gothic-glow transition-colors">
                   Политика конфиденциальности
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-gothic-glow transition-colors">
+                <a href="/terms" className="text-muted-foreground hover:text-gothic-glow transition-colors">
                   Пользовательское соглашение
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-gothic-glow transition-colors">
+                <a href="/usage" className="text-muted-foreground hover:text-gothic-glow transition-colors">
                   Условия использования
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-gothic-glow transition-colors">
+                <a href="/support" className="text-muted-foreground hover:text-gothic-glow transition-colors">
                   Техническая поддержка
                 </a>
               </li>
               <li>
-                <a href="#" className="text-muted-foreground hover:text-gothic-glow transition-colors">
+                <a href="/community" className="text-muted-foreground hover:text-gothic-glow transition-colors">
                   Присоединиться к сообществу
                 </a>
               </li>

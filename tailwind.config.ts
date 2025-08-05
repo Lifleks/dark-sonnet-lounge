@@ -107,7 +107,9 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'gothic-glow': 'gothic-glow 3s ease-in-out infinite',
 				'float': 'float 6s ease-in-out infinite',
-				'fade-in-up': 'fade-in-up 0.8s ease-out'
+				'fade-in-up': 'fade-in-up 0.8s ease-out',
+				'fade-in': 'fade-in-up 0.5s ease-out',
+				'slide-in-up': 'fade-in-up 0.3s ease-out'
 			}
 		}
 	},

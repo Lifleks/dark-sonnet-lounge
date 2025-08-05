@@ -20,83 +20,76 @@ export default function TrackRecommendations() {
   const { playTrack } = usePlayer();
   const [recommendations, setRecommendations] = useState<RecommendedTrack[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasPreferences, setHasPreferences] = useState(false);
 
   useEffect(() => {
-    loadRecommendations();
+    if (user) {
+      checkUserPreferences();
+    }
   }, [user]);
 
-  const loadRecommendations = async () => {
+  const checkUserPreferences = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: preferences } = await supabase
+        .from('user_preferences')
+        .select('preferred_artists')
+        .eq('user_id', user.id)
+        .single();
+
+      if (preferences && preferences.preferred_artists && Array.isArray(preferences.preferred_artists) && preferences.preferred_artists.length > 0) {
+        setHasPreferences(true);
+        loadPersonalizedRecommendations(preferences.preferred_artists as string[]);
+      } else {
+        setHasPreferences(false);
+      }
+    } catch (error) {
+      console.error('Error checking preferences:', error);
+      setHasPreferences(false);
+    }
+  };
+
+  const loadPersonalizedRecommendations = async (preferredArtists: string[]) => {
     setLoading(true);
     try {
-      // Пока создаем рекомендации на основе популярных треков
-      const popularTracks: RecommendedTrack[] = [
-        {
-          id: "1",
-          video_id: "jfKfPfyJRdk",
-          title: "lofi hip hop radio - beats to relax/study to",
-          artist: "Lofi Girl",
-          thumbnail_url: "https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg",
-          reason: "Популярно в темной музыке"
-        },
-        {
-          id: "2",
-          video_id: "4xDzrJKXOOY", 
-          title: "The Abyss - Dark Ambient",
-          artist: "Cryo Chamber",
-          thumbnail_url: "https://i.ytimg.com/vi/4xDzrJKXOOY/maxresdefault.jpg",
-          reason: "Темный эмбиент"
-        },
-        {
-          id: "3",
-          video_id: "5qap5aO4i9A",
-          title: "Dark Synthwave Mix",
-          artist: "Various Artists", 
-          thumbnail_url: "https://i.ytimg.com/vi/5qap5aO4i9A/maxresdefault.jpg",
-          reason: "Синтвейв классика"
-        },
-        {
-          id: "4",
-          video_id: "WiST_wKlFDY",
-          title: "Blade Runner Blues",
-          artist: "Vangelis",
-          thumbnail_url: "https://i.ytimg.com/vi/WiST_wKlFDY/maxresdefault.jpg",
-          reason: "Киберпанк атмосфера"
-        },
-        {
-          id: "5",
-          video_id: "hFcLyDb6niA",
-          title: "Carpenter Brut - Turbo Killer",
-          artist: "Carpenter Brut",
-          thumbnail_url: "https://i.ytimg.com/vi/hFcLyDb6niA/maxresdefault.jpg",
-          reason: "Энергичный дарквейв"
-        },
-        {
-          id: "6",
-          video_id: "oe7fy5Q-5-s",
-          title: "Dark Gothic Music",
-          artist: "Adrian von Ziegler",
-          thumbnail_url: "https://i.ytimg.com/vi/oe7fy5Q-5-s/maxresdefault.jpg",
-          reason: "Готическая атмосфера"
+      // Ищем треки из истории прослушивания и библиотеки пользователя
+      const { data: historyTracks } = await supabase
+        .from('listening_history')
+        .select('video_id, title, artist, thumbnail_url')
+        .eq('user_id', user.id)
+        .in('artist', preferredArtists)
+        .limit(20);
+
+      const { data: libraryTracks } = await supabase
+        .from('user_library')
+        .select('video_id, title, artist, thumbnail_url')
+        .eq('user_id', user.id)
+        .in('artist', preferredArtists)
+        .limit(20);
+
+      // Объединяем и убираем дубликаты
+      const allTracks = [...(historyTracks || []), ...(libraryTracks || [])];
+      const uniqueTracks = allTracks.reduce((acc, track) => {
+        if (!acc.find(t => t.video_id === track.video_id)) {
+          acc.push(track);
         }
-      ];
+        return acc;
+      }, [] as any[]);
 
-      // Если пользователь авторизован, можем показать персонализированные рекомендации
-      if (user) {
-        // Здесь можно добавить логику на основе истории прослушивания
-        const { data: userHistory } = await supabase
-          .from('listening_history')
-          .select('video_id, title, artist')
-          .eq('user_id', user.id)
-          .limit(5);
+      // Создаем рекомендации на основе предпочтений
+      const personalizedRecommendations: RecommendedTrack[] = uniqueTracks
+        .slice(0, 6)
+        .map((track, index) => ({
+          id: `personal_${index}`,
+          video_id: track.video_id,
+          title: track.title,
+          artist: track.artist,
+          thumbnail_url: track.thumbnail_url || '/placeholder.svg',
+          reason: `Основано на ваших предпочтениях: ${track.artist}`
+        }));
 
-        if (userHistory && userHistory.length > 0) {
-          // Добавляем причину на основе истории
-          popularTracks[0].reason = "На основе вашей истории";
-          popularTracks[1].reason = "Похоже на ваши предпочтения";
-        }
-      }
-
-      setRecommendations(popularTracks);
+      setRecommendations(personalizedRecommendations);
     } catch (error) {
       console.error('Error loading recommendations:', error);
     } finally {
@@ -113,17 +106,21 @@ export default function TrackRecommendations() {
     });
   };
 
+  if (!user || !hasPreferences) {
+    return null;
+  }
+
   if (loading) {
     return (
-      <Card className="bg-card/50 backdrop-blur border-primary/20">
+      <Card className="bg-card/50 backdrop-blur border-primary/20 animate-pulse">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gothic-highlight">
             <Star className="w-5 h-5" />
-            Рекомендации
+            Рекомендации для вас
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-center text-muted-foreground py-8">Загрузка рекомендаций...</p>
+          <p className="text-center text-muted-foreground py-8">Загрузка персональных рекомендаций...</p>
         </CardContent>
       </Card>
     );
@@ -143,10 +140,11 @@ export default function TrackRecommendations() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recommendations.map((track) => (
+          {recommendations.map((track, index) => (
             <Card 
               key={track.id}
-              className="bg-card/50 backdrop-blur border-primary/20 hover:border-primary/40 transition-all duration-300 group"
+              className="bg-card/50 backdrop-blur border-primary/20 hover:border-primary/40 transition-all duration-500 group hover:scale-105 hover:shadow-glow animate-fade-in-up"
+              style={{ animationDelay: `${index * 100}ms` }}
             >
               <CardContent className="p-4">
                 <div className="relative mb-4">
@@ -158,11 +156,11 @@ export default function TrackRecommendations() {
                       e.currentTarget.src = '/placeholder.svg';
                     }}
                   />
-                  <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                     <Button
                       size="lg"
                       onClick={() => handlePlayTrack(track)}
-                      className="bg-primary/90 hover:bg-primary"
+                      className="bg-primary/90 hover:bg-primary transform scale-0 group-hover:scale-100 transition-transform duration-300 shadow-glow"
                     >
                       <Play className="w-6 h-6" />
                     </Button>
@@ -179,7 +177,7 @@ export default function TrackRecommendations() {
                 </div>
                 
                 <Button
-                  className="w-full mt-4"
+                  className="w-full mt-4 transition-all duration-300 hover:shadow-glow"
                   variant="outline"
                   onClick={() => handlePlayTrack(track)}
                 >

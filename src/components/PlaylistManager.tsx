@@ -406,7 +406,7 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
                       <>
                         <div className="max-h-96 overflow-y-auto space-y-2">
                           {availableLibraryTracks.map((track) => (
-                            <div key={track.id} className="flex items-center gap-3 p-2 rounded hover:bg-background/50">
+                            <div key={track.id} className="flex items-center gap-3 p-2 rounded hover:bg-background/50 transition-all duration-300 hover:scale-[1.02] animate-fade-in">
                               <input
                                 type="checkbox"
                                 checked={selectedTracks.has(track.id)}
@@ -419,6 +419,7 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
                                   }
                                   setSelectedTracks(newSelected);
                                 }}
+                                className="transition-transform duration-200 hover:scale-110"
                               />
                               <img
                                 src={track.thumbnail_url || '/placeholder.svg'}
@@ -433,10 +434,21 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
                           ))}
                         </div>
                         <div className="flex gap-2">
-                          <Button onClick={addTracksToPlaylist} disabled={selectedTracks.size === 0}>
+                          <Button 
+                            onClick={addTracksToPlaylist} 
+                            disabled={selectedTracks.size === 0}
+                            className="transition-all duration-300 hover:scale-105 hover:shadow-glow"
+                          >
                             Добавить ({selectedTracks.size})
                           </Button>
-                          <Button variant="outline" onClick={() => setShowAddTracks(false)}>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setShowAddTracks(false);
+                              setSelectedTracks(new Set());
+                            }}
+                            className="transition-all duration-300 hover:scale-105"
+                          >
                             Отмена
                           </Button>
                         </div>

@@ -3,8 +3,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Clock } from "lucide-react";
+import { Play, Clock, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { usePlayer } from "@/contexts/PlayerContext";
+import { useNavigate } from "react-router-dom";
 
 interface RecentTrack {
   id: string;
@@ -19,8 +20,10 @@ interface RecentTrack {
 export default function RecentTracks() {
   const { user } = useAuth();
   const { playTrack } = usePlayer();
+  const navigate = useNavigate();
   const [recentTracks, setRecentTracks] = useState<RecentTrack[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -38,7 +41,7 @@ export default function RecentTracks() {
         .select('*')
         .eq('user_id', user.id)
         .order('played_at', { ascending: false })
-        .limit(10);
+        .limit(isExpanded ? 50 : 5);
 
       if (data) {
         setRecentTracks(data);
@@ -94,54 +97,87 @@ export default function RecentTracks() {
   }
 
   return (
-    <Card className="bg-card/50 backdrop-blur border-primary/20">
+    <Card className="bg-card/50 backdrop-blur border-primary/20 transition-all duration-500 ease-in-out">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gothic-highlight">
-          <Clock className="w-5 h-5" />
-          Недавние треки ({recentTracks.length})
+        <CardTitle className="flex items-center justify-between text-gothic-highlight">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Недавние треки ({recentTracks.length})
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-8 h-8 p-0 animate-pulse"
+          >
+            {isExpanded ? (
+              <ChevronLeft className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={`transition-all duration-500 ease-in-out ${
+        isExpanded ? 'max-h-[600px] overflow-y-auto' : 'max-h-[300px] overflow-hidden'
+      }`}>
         {recentTracks.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">
             Пока нет недавних треков
           </p>
         ) : (
-          <div className="space-y-3">
-            {recentTracks.map((track) => (
-              <div
-                key={track.id}
-                className="flex items-center gap-3 p-3 rounded-lg border bg-background/50 hover:bg-background/80 transition-colors"
-              >
-                {track.thumbnail_url && (
-                  <img
-                    src={track.thumbnail_url}
-                    alt={track.title}
-                    className="w-12 h-12 rounded object-cover"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm truncate">
-                    {track.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {track.artist || 'Unknown Artist'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(track.played_at).toLocaleDateString('ru-RU')}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handlePlayTrack(track)}
-                  className="shrink-0"
+          <>
+            <div className="space-y-3">
+              {recentTracks.map((track, index) => (
+                <div
+                  key={track.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border bg-background/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <Play className="w-4 h-4" />
+                  {track.thumbnail_url && (
+                    <img
+                      src={track.thumbnail_url}
+                      alt={track.title}
+                      className="w-12 h-12 rounded object-cover transition-transform duration-300 hover:scale-110"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm truncate">
+                      {track.title}
+                    </h4>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {track.artist || 'Unknown Artist'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(track.played_at).toLocaleDateString('ru-RU')}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handlePlayTrack(track)}
+                    className="shrink-0 transition-all duration-300 hover:scale-110 hover:shadow-glow"
+                  >
+                    <Play className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            
+            {!isExpanded && recentTracks.length >= 5 && (
+              <div className="mt-4 text-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/recent-tracks')}
+                  className="transition-all duration-300 hover:scale-105 hover:shadow-glow"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Все недавние треки
                 </Button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>

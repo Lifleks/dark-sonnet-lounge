@@ -104,6 +104,42 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
     }
   };
 
+  const isTrackInPlaylist = (playlistId: string, videoId: string) => {
+    const playlist = playlists.find(p => p.id === playlistId);
+    return playlist?.tracks?.some(track => track.video_id === videoId) || false;
+  };
+
+  const removeFromPlaylist = async (playlistId: string, videoId: string) => {
+    try {
+      const playlist = playlists.find(p => p.id === playlistId);
+      if (!playlist) return;
+
+      const updatedTracks = (playlist.tracks || []).filter(
+        track => track.video_id !== videoId
+      );
+
+      const { error } = await supabase
+        .from('playlists')
+        .update({ tracks: updatedTracks })
+        .eq('id', playlistId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Трек удален из плейлиста",
+      });
+
+      onPlaylistsUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Ошибка",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const deletePlaylist = async (id: string) => {
     try {
       const { error } = await supabase
@@ -405,33 +441,53 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
                     {availableLibraryTracks.length > 0 ? (
                       <>
                         <div className="max-h-96 overflow-y-auto space-y-2">
-                          {availableLibraryTracks.map((track) => (
-                            <div key={track.id} className="flex items-center gap-3 p-2 rounded hover:bg-background/50 transition-all duration-300 hover:scale-[1.02] animate-fade-in">
-                              <input
-                                type="checkbox"
-                                checked={selectedTracks.has(track.id)}
-                                onChange={(e) => {
-                                  const newSelected = new Set(selectedTracks);
-                                  if (e.target.checked) {
-                                    newSelected.add(track.id);
-                                  } else {
-                                    newSelected.delete(track.id);
-                                  }
-                                  setSelectedTracks(newSelected);
-                                }}
-                                className="transition-transform duration-200 hover:scale-110"
-                              />
-                              <img
-                                src={track.thumbnail_url || '/placeholder.svg'}
-                                alt={track.title}
-                                className="w-12 h-12 rounded object-cover"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{track.title}</p>
-                                <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
-                              </div>
-                            </div>
-                          ))}
+                         <div className="flex items-center gap-2 pb-2 border-b">
+                           <input
+                             type="checkbox"
+                             checked={selectedTracks.size === availableLibraryTracks.length && availableLibraryTracks.length > 0}
+                             onChange={(e) => {
+                               if (e.target.checked) {
+                                 setSelectedTracks(new Set(availableLibraryTracks.map(track => track.id)));
+                               } else {
+                                 setSelectedTracks(new Set());
+                               }
+                             }}
+                             className="transition-transform duration-200 hover:scale-110"
+                           />
+                           <span className="text-sm font-medium">Выбрать все</span>
+                         </div>
+                         
+                         {availableLibraryTracks.map((track, index) => (
+                           <div 
+                             key={track.id} 
+                             className="flex items-center gap-3 p-2 rounded hover:bg-background/50 transition-all duration-300 hover:scale-[1.02] animate-fade-in"
+                             style={{ animationDelay: `${index * 0.05}s` }}
+                           >
+                             <input
+                               type="checkbox"
+                               checked={selectedTracks.has(track.id)}
+                               onChange={(e) => {
+                                 const newSelected = new Set(selectedTracks);
+                                 if (e.target.checked) {
+                                   newSelected.add(track.id);
+                                 } else {
+                                   newSelected.delete(track.id);
+                                 }
+                                 setSelectedTracks(newSelected);
+                               }}
+                               className="transition-transform duration-200 hover:scale-110"
+                             />
+                             <img
+                               src={track.thumbnail_url || '/placeholder.svg'}
+                               alt={track.title}
+                               className="w-12 h-12 rounded object-cover transition-transform duration-300 hover:scale-110"
+                             />
+                             <div className="flex-1 min-w-0">
+                               <p className="font-medium truncate">{track.title}</p>
+                               <p className="text-sm text-muted-foreground truncate">{track.artist}</p>
+                             </div>
+                           </div>
+                         ))}
                         </div>
                         <div className="flex gap-2">
                           <Button 

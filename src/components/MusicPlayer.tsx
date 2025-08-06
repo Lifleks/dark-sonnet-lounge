@@ -1,4 +1,5 @@
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Plus, Minus } from "lucide-react";
+import { useState } from "react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Plus, Minus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
@@ -45,6 +46,8 @@ const MusicPlayer = () => {
     setPlayerReady,
     setIsPlaying
   } = usePlayer();
+  
+  const [playerState, setPlayerState] = useState<'loading' | 'playing' | 'paused'>('paused');
 
   const handleTrackSelect = (searchResult: SearchResult) => {
     const track: Track = {
@@ -75,11 +78,21 @@ const MusicPlayer = () => {
   };
 
   const onPlayerStateChange = (event: any) => {
-    const playerState = event.data;
-    setIsPlaying(playerState === 1);
+    const state = event.data;
+    setIsPlaying(state === 1);
     
-    if (playerState === 0) { // ended
+    // Update player state for animations
+    if (state === -1) { // unstarted
+      setPlayerState('loading');
+    } else if (state === 0) { // ended
+      setPlayerState('paused');
       nextTrack();
+    } else if (state === 1) { // playing
+      setPlayerState('playing');
+    } else if (state === 2) { // paused
+      setPlayerState('paused');
+    } else if (state === 3) { // buffering
+      setPlayerState('loading');
     }
   };
 
@@ -170,12 +183,18 @@ const MusicPlayer = () => {
             variant="hero"
             size="lg"
             onClick={togglePlay}
-            className="w-14 h-14 p-0 rounded-full"
+            className={`w-14 h-14 p-0 rounded-full transition-all duration-300 hover:scale-110 hover:shadow-glow ${
+              playerState === 'loading' ? 'animate-spin' : 
+              playerState === 'playing' ? 'animate-pulse' : 
+              'hover:animate-bounce'
+            }`}
           >
-            {isPlaying ? (
-              <Pause className="w-6 h-6" />
+            {playerState === 'loading' ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-6 h-6 transition-all duration-200" />
             ) : (
-              <Play className="w-6 h-6" />
+              <Play className="w-6 h-6 transition-all duration-200" />
             )}
           </Button>
 

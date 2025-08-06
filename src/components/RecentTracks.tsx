@@ -64,7 +64,7 @@ export default function RecentTracks() {
 
   if (!user) {
     return (
-      <Card className="bg-card/50 backdrop-blur border-primary/20">
+      <Card className="bg-card/50 backdrop-blur border-primary/20 h-full flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gothic-highlight">
             <Clock className="w-5 h-5" />
@@ -82,22 +82,22 @@ export default function RecentTracks() {
 
   if (loading) {
     return (
-      <Card className="bg-card/50 backdrop-blur border-primary/20">
+      <Card className="bg-card/50 backdrop-blur border-primary/20 h-full flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-gothic-highlight">
             <Clock className="w-5 h-5" />
             Недавние треки
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">Загрузка...</p>
+        <CardContent className="flex-1 flex items-center justify-center">
+          <p className="text-center text-muted-foreground">Загрузка...</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-card/50 backdrop-blur border-primary/20 transition-all duration-500 ease-in-out">
+    <Card className="bg-card/50 backdrop-blur border-primary/20 transition-all duration-500 ease-in-out h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center justify-between text-gothic-highlight">
           <div className="flex items-center gap-2">
@@ -118,8 +118,8 @@ export default function RecentTracks() {
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent className={`transition-all duration-500 ease-in-out ${
-        isExpanded ? 'max-h-[600px] overflow-y-auto' : 'max-h-[300px] overflow-hidden'
+      <CardContent className={`flex-1 transition-all duration-500 ease-in-out ${
+        isExpanded ? 'overflow-y-auto' : 'overflow-hidden'
       }`}>
         {recentTracks.length === 0 ? (
           <p className="text-muted-foreground text-center py-8">

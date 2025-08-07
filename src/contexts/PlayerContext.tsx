@@ -2,13 +2,7 @@ import { createContext, useContext, useState, useRef, ReactNode, useEffect } fro
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Track {
-  videoId: string;
-  title: string;
-  artist: string;
-  thumbnail?: string;
-}
+import { musicService, Track } from "@/services/musicService";
 
 interface PlayerContextType {
   // Player state
@@ -71,35 +65,37 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
   // Дефолтные треки для случайного воспроизведения
   const defaultTracks: Track[] = [
     {
-      videoId: "jfKfPfyJRdk",
-      title: "lofi hip hop radio - beats to relax/study to",
-      artist: "Lofi Girl"
+      id: "default_1",
+      title: "Ambient Soundscape",
+      artist: "Ambient Artist",
+      url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
     },
     {
-      videoId: "4xDzrJKXOOY",
-      title: "Dark Ambient Music - The Abyss",
-      artist: "Cryo Chamber"
+      id: "default_2", 
+      title: "Dark Atmosphere",
+      artist: "Dark Artist",
+      url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
     },
     {
-      videoId: "5qap5aO4i9A",
-      title: "Dark Synthwave Mix",
-      artist: "Various Artists"
+      id: "default_3",
+      title: "Synthwave Mix",
+      artist: "Synth Artist",
+      url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav"
     }
   ];
 
   useEffect(() => {
     const updateTime = () => {
-      if (playerRef.current && playerReady) {
-        const currentSeconds = playerRef.current.getCurrentTime();
-        const totalSeconds = playerRef.current.getDuration();
-        setCurrentTime(currentSeconds);
-        setDuration(totalSeconds || 0);
-      }
+      const currentSeconds = musicService.getCurrentTime();
+      const totalSeconds = musicService.getDuration();
+      setCurrentTime(currentSeconds);
+      setDuration(totalSeconds || 0);
+      setIsPlaying(musicService.getIsPlaying());
     };
 
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [playerReady]);
+  }, []);
 
   useEffect(() => {
     if (currentTrack && user) {
@@ -114,7 +110,7 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
       .from('user_library')
       .select('id')
       .eq('user_id', user.id)
-      .eq('video_id', currentTrack.videoId)
+      .eq('video_id', currentTrack.id)
       .maybeSingle();
 
     setIsInLibrary(!!data);
@@ -131,61 +127,61 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
       return;
     }
 
-    if (playerRef.current) {
-      if (isPlaying) {
-        playerRef.current.pauseVideo();
-      } else {
-        playerRef.current.playVideo();
-      }
-    }
+    const newPlayingState = musicService.togglePlayback();
+    setIsPlaying(newPlayingState);
   };
 
   const playTrack = async (track: Track) => {
-    setCurrentTrack(track);
-    
-    // Add to listening history if user is logged in
-    if (user && navigator.onLine) {
-      try {
-        await supabase
-          .from('listening_history')
-          .insert({
-            user_id: user.id,
-            video_id: track.videoId,
-            title: track.title,
-            artist: track.artist,
-            thumbnail_url: track.thumbnail || null,
-            duration: formatTime(duration) || null
-          });
-      } catch (error) {
-        console.error('Error adding to listening history:', error);
+    try {
+      await musicService.playTrack(track);
+      setCurrentTrack(track);
+      setIsPlaying(true);
+      
+      // Add to listening history if user is logged in
+      if (user && navigator.onLine) {
+        try {
+          await supabase
+            .from('listening_history')
+            .insert({
+              user_id: user.id,
+              video_id: track.id,
+              title: track.title,
+              artist: track.artist,
+              thumbnail_url: track.thumbnail || null,
+              duration: track.duration || null
+            });
+        } catch (error) {
+          console.error('Error adding to listening history:', error);
+        }
       }
+    } catch (error) {
+      console.error('Error playing track:', error);
+      toast({
+        title: "Ошибка воспроизведения",
+        description: "Не удалось воспроизвести трек",
+        variant: "destructive"
+      });
     }
   };
 
   const handleProgressChange = (value: number[]) => {
-    if (playerRef.current && playerReady) {
-      playerRef.current.seekTo(value[0]);
-      setCurrentTime(value[0]);
-    }
+    musicService.setCurrentTime(value[0]);
+    setCurrentTime(value[0]);
   };
 
   const handleVolumeChange = (value: number[]) => {
-    if (playerRef.current) {
-      playerRef.current.setVolume(value[0]);
-      setVolume(value);
-      setIsMuted(value[0] === 0);
-    }
+    musicService.setVolume(value[0]);
+    setVolume(value);
+    setIsMuted(value[0] === 0);
   };
 
   const toggleMute = () => {
-    if (playerRef.current) {
-      if (isMuted) {
-        playerRef.current.setVolume(volume[0]);
-        setIsMuted(false);
-      } else {
-        playerRef.current.setVolume(0);
-        setIsMuted(true);
-      }
+    if (isMuted) {
+      musicService.setVolume(volume[0]);
+      setIsMuted(false);
+    } else {
+      musicService.setVolume(0);
+      setIsMuted(true);
     }
   };
 
@@ -212,11 +208,11 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
         .from('user_library')
         .insert({
           user_id: user.id,
-          video_id: currentTrack.videoId,
+          video_id: currentTrack.id,
           title: currentTrack.title,
           artist: currentTrack.artist,
           thumbnail_url: currentTrack.thumbnail || '',
-          duration: formatTime(duration)
+          duration: currentTrack.duration || formatTime(duration)
         });
 
       if (error) throw error;
@@ -250,7 +246,7 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
         .from('user_library')
         .delete()
         .eq('user_id', user.id)
-        .eq('video_id', currentTrack.videoId);
+        .eq('video_id', currentTrack.id);
 
       if (error) throw error;
 

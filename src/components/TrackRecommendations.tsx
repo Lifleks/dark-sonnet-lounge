@@ -99,7 +99,7 @@ export default function TrackRecommendations() {
 
   const handlePlayTrack = (track: RecommendedTrack) => {
     playTrack({
-      videoId: track.video_id,
+      id: track.video_id,
       title: track.title,
       artist: track.artist,
       thumbnail: track.thumbnail_url

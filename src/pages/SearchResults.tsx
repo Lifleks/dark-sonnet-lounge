@@ -93,7 +93,7 @@ const SearchResults = () => {
 
   const handlePlayTrack = (track: SearchResult) => {
     playTrack({
-      videoId: track.videoId,
+      id: track.videoId || `track_${Date.now()}`,
       title: track.title,
       artist: track.artist,
       thumbnail: track.thumbnail

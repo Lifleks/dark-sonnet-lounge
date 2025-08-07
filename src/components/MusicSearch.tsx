@@ -4,28 +4,7 @@ import { Search, Play } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
-interface YouTubeVideo {
-  id: {
-    videoId: string;
-  };
-  snippet: {
-    title: string;
-    channelTitle: string;
-    thumbnails: {
-      default: {
-        url: string;
-      };
-    };
-  };
-}
-
-interface SearchResult {
-  videoId: string;
-  title: string;
-  artist: string;
-  thumbnail: string;
-}
+import { musicService, SearchResult } from "@/services/musicService";
 
 interface MusicSearchProps {
   onTrackSelect: (track: SearchResult) => void;
@@ -39,10 +18,7 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
   const [showResults, setShowResults] = useState(false);
   const searchTimeout = useRef<NodeJS.Timeout>();
 
-  // YouTube API key - в продакшене это должно быть в переменных окружения
-  const YOUTUBE_API_KEY = "AIzaSyB_t3uhf9i8Mdx7lFPTPmkV7sesONyu9y4"; // Замените на ваш API ключ
-
-  const searchYouTube = async (searchQuery: string) => {
+  const searchMusic = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
       setResults([]);
       setShowResults(false);
@@ -52,27 +28,11 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=10&q=${encodeURIComponent(
-          searchQuery
-        )}&type=video&key=${YOUTUBE_API_KEY}`
-      );
-      
-      const data = await response.json();
-      
-      if (data.items) {
-        const searchResults: SearchResult[] = data.items.map((item: YouTubeVideo) => ({
-          videoId: item.id.videoId,
-          title: item.snippet.title,
-          artist: item.snippet.channelTitle,
-          thumbnail: item.snippet.thumbnails.default.url
-        }));
-        
-        setResults(searchResults);
-        setShowResults(true);
-      }
+      const searchResults = await musicService.searchMusic(searchQuery);
+      setResults(searchResults);
+      setShowResults(true);
     } catch (error) {
-      console.error("Error searching YouTube:", error);
+      console.error("Error searching music:", error);
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +44,7 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
     }
 
     searchTimeout.current = setTimeout(() => {
-      searchYouTube(query);
+      searchMusic(query);
     }, 500);
 
     return () => {
@@ -130,7 +90,7 @@ const MusicSearch = ({ onTrackSelect }: MusicSearchProps) => {
             <div className="p-2">
               {results.map((track) => (
                 <div
-                  key={track.videoId}
+                  key={track.id}
                   className="flex items-center gap-3 p-3 hover:bg-gothic-accent/10 rounded-lg cursor-pointer transition-colors"
                   onClick={() => handleTrackSelect(track)}
                 >

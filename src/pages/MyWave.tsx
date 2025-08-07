@@ -10,7 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
 interface Track {
-  videoId: string;
+  videoId?: string; // legacy support  
+  id?: string;
   title: string;
   artist: string;
   thumbnail?: string;
@@ -170,7 +171,7 @@ const MyWave = () => {
 
   const handlePlayTrack = (track: Track) => {
     playTrack({
-      videoId: track.videoId,
+      id: track.videoId || track.id || `track_${Date.now()}`,
       title: track.title,
       artist: track.artist,
       thumbnail: track.thumbnail

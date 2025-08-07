@@ -200,7 +200,7 @@ export default function DownloadedTracksManager({ libraryTracks, onLibraryUpdate
   const playOfflineTrack = (track: DownloadedTrack) => {
     // In a real app, this would play the downloaded file
     playTrack({
-      videoId: track.video_id,
+      id: track.video_id,
       title: track.title,
       artist: track.artist,
       thumbnail: track.thumbnail_url

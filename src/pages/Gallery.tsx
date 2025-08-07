@@ -12,7 +12,8 @@ import { usePlayer } from "@/contexts/PlayerContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Track {
-  videoId: string;
+  videoId?: string; // legacy support
+  id?: string;
   title: string;
   artist: string;
   thumbnail?: string;
@@ -212,7 +213,7 @@ const Gallery = () => {
 
   const handlePlayTrack = (track: Track) => {
     playTrack({
-      videoId: track.videoId,
+      id: track.videoId || track.id || `track_${Date.now()}`,
       title: track.title,
       artist: track.artist,
       thumbnail: track.thumbnail

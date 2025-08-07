@@ -55,7 +55,7 @@ export default function RecentTracks() {
 
   const handlePlayTrack = (track: RecentTrack) => {
     playTrack({
-      videoId: track.video_id,
+      id: track.video_id,
       title: track.title,
       artist: track.artist || 'Unknown Artist',
       thumbnail: track.thumbnail_url || ''

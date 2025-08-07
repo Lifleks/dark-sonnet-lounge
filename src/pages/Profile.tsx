@@ -481,7 +481,7 @@ export default function Profile() {
                                 className="w-8 h-8 p-0"
                                 onClick={() => {
                                   const trackToPlay = {
-                                    videoId: track.video_id,
+                                    id: track.video_id,
                                     title: track.title,
                                     artist: track.artist || 'Unknown Artist',
                                     thumbnail: track.thumbnail_url

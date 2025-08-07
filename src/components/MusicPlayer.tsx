@@ -5,22 +5,8 @@ import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayer } from "@/contexts/PlayerContext";
-import YouTube from "react-youtube";
 import MusicSearch from "./MusicSearch";
-
-interface Track {
-  videoId: string;
-  title: string;
-  artist: string;
-  thumbnail?: string;
-}
-
-interface SearchResult {
-  videoId: string;
-  title: string;
-  artist: string;
-  thumbnail: string;
-}
+import { SearchResult, Track } from "@/services/musicService";
 
 const MusicPlayer = () => {
   const { user } = useAuth();
@@ -51,10 +37,11 @@ const MusicPlayer = () => {
 
   const handleTrackSelect = (searchResult: SearchResult) => {
     const track: Track = {
-      videoId: searchResult.videoId,
+      id: searchResult.id,
       title: searchResult.title,
       artist: searchResult.artist,
-      thumbnail: searchResult.thumbnail
+      thumbnail: searchResult.thumbnail,
+      url: searchResult.url
     };
     playTrack(track);
   };
@@ -65,50 +52,13 @@ const MusicPlayer = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const onPlayerReady = (event: any) => {
-    if (playerRef.current) {
-      Object.assign(playerRef.current, event.target);
-    } else {
-      (playerRef as any).current = event.target;
-    }
-    setPlayerReady(true);
-    if (playerRef.current) {
-      playerRef.current.setVolume(volume[0]);
-    }
-  };
-
-  const onPlayerStateChange = (event: any) => {
-    const state = event.data;
-    setIsPlaying(state === 1);
-    
-    // Update player state for animations
-    if (state === -1) { // unstarted
-      setPlayerState('loading');
-    } else if (state === 0) { // ended
-      setPlayerState('paused');
-      nextTrack();
-    } else if (state === 1) { // playing
+  // Обновляем состояние плеера на основе нового аудио сервиса
+  const handlePlayerStateUpdate = () => {
+    if (isPlaying) {
       setPlayerState('playing');
-    } else if (state === 2) { // paused
+    } else {
       setPlayerState('paused');
-    } else if (state === 3) { // buffering
-      setPlayerState('loading');
     }
-  };
-
-  const opts = {
-    height: '0',
-    width: '0',
-    playerVars: {
-      autoplay: 0,
-      controls: 0,
-      disablekb: 1,
-      fs: 0,
-      iv_load_policy: 3,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-    },
   };
 
   return (
@@ -117,17 +67,7 @@ const MusicPlayer = () => {
       <MusicSearch onTrackSelect={handleTrackSelect} />
 
       <Card className="bg-gradient-highlight border-gothic-accent shadow-gothic p-6">
-        {/* Скрытый YouTube плеер */}
-        {currentTrack && (
-          <div style={{ display: 'none' }}>
-            <YouTube
-              videoId={currentTrack.videoId}
-              opts={opts}
-              onReady={onPlayerReady}
-              onStateChange={onPlayerStateChange}
-            />
-          </div>
-        )}
+        {/* Скрытый аудио плеер теперь управляется через MusicService */}
 
         {/* Track Info */}
         <div className="text-center mb-6">

@@ -5,7 +5,6 @@ import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { usePlayer } from "@/contexts/PlayerContext";
-import YouTube from "react-youtube";
 
 const GlobalPlayer = () => {
   const { user } = useAuth();
@@ -39,65 +38,20 @@ const GlobalPlayer = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const onPlayerReady = (event: any) => {
-    if (playerRef.current) {
-      Object.assign(playerRef.current, event.target);
-    } else {
-      (playerRef as any).current = event.target;
-    }
-    setPlayerReady(true);
-    if (playerRef.current) {
-      playerRef.current.setVolume(volume[0]);
-    }
-  };
-
-  const onPlayerStateChange = (event: any) => {
-    const state = event.data;
-    setIsPlaying(state === 1);
-    
-    // Update player state for animations
-    if (state === -1) { // unstarted
-      setPlayerState('loading');
-    } else if (state === 0) { // ended
-      setPlayerState('paused');
-      nextTrack();
-    } else if (state === 1) { // playing
+  // Обновляем состояние плеера на основе нового аудио сервиса
+  const handlePlayerStateUpdate = () => {
+    if (isPlaying) {
       setPlayerState('playing');
-    } else if (state === 2) { // paused
+    } else {
       setPlayerState('paused');
-    } else if (state === 3) { // buffering
-      setPlayerState('loading');
     }
-  };
-
-  const opts = {
-    height: '0',
-    width: '0',
-    playerVars: {
-      autoplay: 0,
-      controls: 0,
-      disablekb: 1,
-      fs: 0,
-      iv_load_policy: 3,
-      modestbranding: 1,
-      rel: 0,
-      showinfo: 0,
-    },
   };
 
   if (!currentTrack) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-t transform transition-all duration-500 hover:scale-[1.01] hover:shadow-[0_0_30px_hsl(var(--gothic-glow)/0.4)] animate-slide-in-up">
-      {/* Скрытый YouTube плеер */}
-      <div style={{ display: 'none' }}>
-        <YouTube
-          videoId={currentTrack.videoId}
-          opts={opts}
-          onReady={onPlayerReady}
-          onStateChange={onPlayerStateChange}
-        />
-      </div>
+      {/* Аудио плеер теперь управляется через MusicService */}
 
       <Card className="bg-transparent border-0 shadow-none rounded-none p-4 transform-gpu">
         <div className="max-w-4xl mx-auto">

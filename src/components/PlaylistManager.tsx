@@ -211,7 +211,7 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
     if (tracks.length > 0) {
       const track = tracks[0];
       playTrack({
-        videoId: track.video_id,
+        id: track.video_id,
         title: track.title,
         artist: track.artist || 'Unknown Artist',
         thumbnail: track.thumbnail_url
@@ -578,7 +578,7 @@ export default function PlaylistManager({ playlists, library, onPlaylistsUpdate 
                           size="sm"
                           onClick={() => {
                             playTrack({
-                              videoId: track.video_id,
+                              id: track.video_id,
                               title: track.title,
                               artist: track.artist || 'Unknown Artist',
                               thumbnail: track.thumbnail_url

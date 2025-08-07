@@ -132,35 +132,24 @@ export const PlayerProvider = ({ children }: PlayerProviderProps) => {
   };
 
   const playTrack = async (track: Track) => {
-    try {
-      await musicService.playTrack(track);
-      setCurrentTrack(track);
-      setIsPlaying(true);
-      
-      // Add to listening history if user is logged in
-      if (user && navigator.onLine) {
-        try {
-          await supabase
-            .from('listening_history')
-            .insert({
-              user_id: user.id,
-              video_id: track.id,
-              title: track.title,
-              artist: track.artist,
-              thumbnail_url: track.thumbnail || null,
-              duration: track.duration || null
-            });
-        } catch (error) {
-          console.error('Error adding to listening history:', error);
-        }
+    setCurrentTrack(track);
+    
+    // Add to listening history if user is logged in
+    if (user && navigator.onLine) {
+      try {
+        await supabase
+          .from('listening_history')
+          .insert({
+            user_id: user.id,
+            video_id: track.id,
+            title: track.title,
+            artist: track.artist,
+            thumbnail_url: track.thumbnail || null,
+            duration: track.duration || null
+          });
+      } catch (error) {
+        console.error('Error adding to listening history:', error);
       }
-    } catch (error) {
-      console.error('Error playing track:', error);
-      toast({
-        title: "Ошибка воспроизведения",
-        description: "Не удалось воспроизвести трек",
-        variant: "destructive"
-      });
     }
   };
 

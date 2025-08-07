@@ -68,7 +68,7 @@ const Index = () => {
                 ? 'w-80 translate-x-0 opacity-100' 
                 : 'w-80 translate-x-full opacity-0'
             }`}>
-              <div className="h-full pt-20">
+              <div className="h-full">
                 <RecentTracks />
               </div>
             </div>

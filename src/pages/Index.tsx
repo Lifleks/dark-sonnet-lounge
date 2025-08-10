@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import Preloader from "@/components/Preloader";
 import RecentTracks from "@/components/RecentTracks";
 import TrackRecommendations from "@/components/TrackRecommendations";
+import TopNavigation from "@/components/TopNavigation";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -28,6 +29,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background font-gothic pb-24">
+      <TopNavigation />
       <div className="flex">
         {/* Main Content */}
         <div className={`flex-1 transition-all duration-500 ease-in-out ${
